@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fafaf7">
+  <meta name="description" content="Galagarage home — бутик домашнего декора в Омске. Вазы, посуда, текстиль, мебель и свет. Карла Либкнехта, 26. Телефон +7 913 608-07-35.">
+  <title>Galagarage home — предметы с характером</title>
+  <link rel="preload" href="assets/Onest-Variable.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="assets/chair-leather.jpg" as="image" fetchpriority="high">
+  <link rel="stylesheet" href="styles.css">
+  <script src="catalog.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">К содержимому</a>
+  <div class="announcement">Бутик домашнего декора · Омск, Карла Либкнехта, 26</div>
+  <header class="header">
+    <a class="wordmark" href="#" aria-label="Galagarage home — главная"><span>GALAGARAGE</span><span class="wordmark-home">HOME</span></a>
+    <nav class="desktop-nav" aria-label="Основная навигация">
+      <a href="#collection" data-category-link="decor">Декор</a>
+      <a href="#collection" data-category-link="tableware">Посуда</a>
+      <a href="#collection" data-category-link="textiles">Текстиль</a>
+      <a href="#collection" data-category-link="furniture">Мебель и свет</a>
+    </nav>
+    <div class="header-actions">
+      <a class="boutique-link" href="#boutique">Наш бутик</a>
+      <button class="text-button search-trigger" type="button" aria-haspopup="dialog">Поиск</button>
+      <button class="text-button favorites-trigger" type="button" aria-haspopup="dialog">Избранное <span data-favorites-count>0</span></button>
+      <button class="text-button menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav">Меню</button>
+    </div>
+  </header>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Мобильная навигация" hidden>
+    <a href="#collection" data-category-link="all">Вся коллекция</a>
+    <a href="#collection" data-category-link="decor">Вазы и декор</a>
+    <a href="#collection" data-category-link="tableware">Посуда</a>
+    <a href="#collection" data-category-link="textiles">Текстиль</a>
+    <a href="#collection" data-category-link="furniture">Мебель и свет</a>
+    <a href="#boutique">Наш бутик</a>
+    <button class="text-button favorites-trigger" type="button" aria-haspopup="dialog">Избранное <span data-favorites-count>0</span></button>
+  </nav>
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-content">
+        <h1 id="hero-title">Дом с вашим<br>характером.</h1>
+        <p class="hero-description">Выразительная мебель, необычная посуда<br class="desktop-break"> и детали, которые хочется оставить себе.</p>
+        <a class="button button-blue" href="#collection" data-category-link="all">Выбрать свой предмет</a>
+      </div>
+      <div class="hero-photographs">
+        <img class="hero-chair" src="assets/chair-leather.jpg" alt="Стул с обивкой из натуральной кожи и деревянный столик — фотография из канала Galagarage home" width="600" height="800" fetchpriority="high">
+        <img class="hero-ceramics" src="assets/boutique.jpg" alt="Сине-белые вазы и настольная лампа на полке бутика Galagarage home" width="450" height="800" fetchpriority="high">
+      </div>
+    </section>
+
+    <section class="collection section-pad" id="collection" aria-labelledby="collection-title">
+      <div class="section-heading"><h2 id="collection-title">Предметы для вашего дома</h2><p>От любимой чашки до кресла, в котором хочется задержаться.</p></div>
+      <div class="collection-toolbar">
+        <div class="category-tabs" role="group" aria-label="Категории коллекции">
+          <button class="category-tab is-active" data-category="all" type="button" aria-pressed="true">Всё</button>
+          <button class="category-tab" data-category="decor" type="button" aria-pressed="false">Вазы и декор</button>
+          <button class="category-tab" data-category="tableware" type="button" aria-pressed="false">Посуда</button>
+          <button class="category-tab" data-category="textiles" type="button" aria-pressed="false">Текстиль</button>
+          <button class="category-tab" data-category="furniture" type="button" aria-pressed="false">Мебель и свет</button>
+        </div>
+        <label class="sort-label"><span class="visually-hidden">Порядок товаров</span><select id="catalog-sort"><option value="curated">Подборка бутика</option><option value="price-asc">Сначала дешевле</option><option value="price-desc">Сначала дороже</option></select></label>
+      </div>
+      <div class="collection-status"><span id="collection-count" role="status"></span><button class="text-button clear-budget" type="button" hidden>Сбросить бюджет подарка</button></div>
+      <div class="product-grid" id="product-grid"></div>
+      <div class="collection-more"><button class="button button-outline" id="show-more" type="button">Показать всю коллекцию</button></div>
+      <p class="collection-note">Подборка по публикациям бутика. Цены и наличие уточняйте перед покупкой.</p>
+    </section>
+
+    <section class="gift-section" id="gifts" aria-labelledby="gift-title">
+      <div class="gift-image"><img src="assets/tea-floral.jpg" alt="Цветочная чайная пара и сервировочный текстиль из подборки Galagarage home" width="600" height="800" loading="lazy"></div>
+      <div class="gift-content"><h2 id="gift-title">Красивый повод<br>зайти в гости.</h2><p>Подберите чайную пару для любителя кофе, плед на новоселье или вазу для первого букета.</p><p>Выберите подарок по бюджету — или загляните к нам, чтобы рассмотреть всё вживую.</p><div class="gift-budgets" aria-label="Подобрать подарок по бюджету"><a class="underlined-link" href="#collection" data-budget="2000">До 2 000 ₽</a><a class="underlined-link" href="#collection" data-budget="5000">До 5 000 ₽</a><a class="underlined-link" href="#collection" data-budget="10000">До 10 000 ₽</a></div><a class="button button-blue" href="#boutique">Заглянуть в бутик</a></div>
+    </section>
+
+    <section class="about section-pad" aria-labelledby="about-title">
+      <h2 id="about-title">Не обязательно<br>менять всё.</h2><div class="about-copy"><p class="large-copy">Иногда достаточно одного предмета, чтобы дома стало больше вашего настроения.</p><p>В Galagarage home соседствуют цветное стекло, керамика с необычными формами, графичный текстиль и выразительная мебель. Собирайте их вместе или выбирайте один акцент — тот, который нравится именно вам.</p><a class="underlined-link" href="https://t.me/galagarage_home" target="_blank" rel="noopener noreferrer">Новые находки в Telegram</a></div>
+    </section>
+
+    <section class="boutique section-pad" id="boutique" aria-labelledby="boutique-title">
+      <div class="boutique-intro"><h2 id="boutique-title">Приходите<br>рассмотреть поближе.</h2><p>Потрогать ткань, увидеть оттенок стекла на свету<br class="desktop-break"> и выбрать вещь, которая отзывается.</p><a class="underlined-link" href="https://2gis.ru/omsk/firm/70000001105982026/tab/reviews" target="_blank" rel="noopener noreferrer">Отзывы о бутике в 2ГИС</a></div>
+      <div class="boutique-details"><h3>Galagarage home</h3><address>Омск, улица Карла Либкнехта, 26</address><p class="hours">Ежедневно, 11:00–20:00</p><p class="visit-note">Перед поездкой уточните часы работы и вход.</p><a class="boutique-phone" href="tel:+79136080735">+7 (913) 608-07-35</a><div class="contact-links"><a class="underlined-link" href="https://t.me/+79136080735" target="_blank" rel="noopener noreferrer">Написать в Telegram</a><a class="underlined-link" href="https://wa.me/79136080735" target="_blank" rel="noopener noreferrer">WhatsApp</a></div><a class="button button-dark" href="https://2gis.ru/omsk/firm/70000001105982026" target="_blank" rel="noopener noreferrer">Открыть в 2ГИС</a></div>
+    </section>
+  </main>
+  <footer class="footer"><div class="footer-main"><a class="wordmark" href="#" aria-label="Galagarage home — главная"><span>GALAGARAGE</span><span class="wordmark-home">HOME</span></a><p>Предметы с характером.<br>Для вашего дома.</p><nav aria-label="Навигация в подвале"><a href="#collection" data-category-link="all">Коллекция</a><a href="#gifts">Подарки</a><a href="#boutique">Контакты</a></nav><div><a href="tel:+79136080735">+7 (913) 608-07-35</a><a href="https://t.me/galagarage_home" target="_blank" rel="noopener noreferrer">@galagarage_home</a><p>Омск, Карла Либкнехта, 26</p></div></div><div class="footer-bottom"><span>© Galagarage home, 2026</span><span>Дизайн-концепт. Фотографии из официального канала бутика.</span><button class="text-button" type="button" id="concept-info">О концепте</button></div></footer>
+
+  <dialog id="product-dialog" class="product-dialog" aria-labelledby="product-title">
+    <button class="dialog-close text-button" type="button" data-close>Закрыть</button><div class="product-detail"><div class="detail-gallery"><img id="detail-img" src="assets/vase-mushroom.jpg" alt="" width="600" height="800"><div class="gallery-controls" id="gallery-controls" hidden><button class="text-button" id="previous-photo" type="button">Предыдущее фото</button><span id="photo-count" aria-live="polite"></span><button class="text-button" id="next-photo" type="button">Следующее фото</button></div></div><div class="detail-copy"><p class="detail-category" id="detail-category"></p><h2 id="product-title"></h2><p class="detail-price" id="detail-price"></p><p id="detail-description"></p><div id="variant-control" hidden><label for="product-variant">Вариант</label><select id="product-variant"></select></div><dl class="product-specs" id="product-specs"></dl><p class="detail-note">Цена по публикации бутика. Наличие, стоимость и комплектацию уточняйте перед покупкой.</p><a class="button button-blue" id="product-contact" href="https://wa.me/79136080735" target="_blank" rel="noopener noreferrer">Уточнить наличие</a><button class="detail-save underlined-link" id="detail-save" type="button">Сохранить в избранное</button><a class="source-link" id="product-source" href="https://t.me/galagarage_home" target="_blank" rel="noopener noreferrer">Посмотреть публикацию бутика</a></div></div>
+  </dialog>
+  <dialog id="search-dialog" class="utility-dialog" aria-labelledby="search-title"><button class="dialog-close text-button" type="button" data-close>Закрыть</button><h2 id="search-title">Найдём ваш предмет</h2><label class="visually-hidden" for="search-input">Название, категория или материал</label><input id="search-input" type="search" placeholder="Например, ваза, плед или лампа" autocomplete="off"><div id="search-results" class="result-list" aria-live="polite"></div></dialog>
+  <dialog id="favorites-dialog" class="utility-dialog" aria-labelledby="favorites-title"><button class="dialog-close text-button" type="button" data-close>Закрыть</button><h2 id="favorites-title">Ваше избранное</h2><p class="dialog-description">Соберите свою подборку, чтобы вернуться к ней перед визитом.</p><div id="favorites-results" class="result-list" aria-live="polite"></div></dialog>
+  <dialog id="concept-dialog" class="utility-dialog" aria-labelledby="concept-title"><button class="dialog-close text-button" type="button" data-close>Закрыть</button><h2 id="concept-title">О концепте</h2><p>Концепт сайта Galagarage home — бутика домашнего декора в Омске. Композиция с крупными фотографиями и открытой сеткой каталога развивает референс Case Furniture с учётом предметов и визуального стиля бутика.</p><p>Товары, фотографии и цены взяты из публикаций официального канала @galagarage_home, изученных 20 октября 2026 года. Названия без названий моделей даны по виду предмета. Ссылка на источник есть в каждой карточке.</p><p>В 2ГИС указан цокольный этаж, в канале — первый. Поэтому точный вход и часы работы предложено уточнить перед поездкой. Цены и наличие не синхронизируются с магазином.</p><p>Поиск и избранное работают в браузере. Покупки и платежи на сайте не оформляются; кнопки связи открывают контакты бутика.</p></dialog>
+  <noscript><p class="noscript-message">Для интерактивного каталога включите JavaScript. <a href="https://t.me/galagarage_home">Посмотреть ассортимент в Telegram</a> или позвонить: <a href="tel:+79136080735">+7 (913) 608-07-35</a>.</p></noscript>
+</body>
+</html>
