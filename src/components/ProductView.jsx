@@ -5,16 +5,16 @@ import { useSite } from '../site.jsx';
 import { buildMessage, orderLinks, useCart } from '../store.jsx';
 import FavoriteButton from './FavoriteButton.jsx';
 
-// The product page body. Also used by the admin preview with draft data.
+// The product page body.
 export default function ProductView({ product }) {
   const cart = useCart();
   const { categoryName, contacts } = useSite();
   const [photo, setPhoto] = useState(0);
   const current = Math.min(photo, Math.max(0, product.images.length - 1));
-  const specRows = product.specs.filter(spec => spec.label || spec.value).map(spec => ['specs', spec.label, spec.value]);
+  const specRows = product.specs.filter(spec => spec.label || spec.value).map(spec => [spec.label, spec.value]);
   const rows = [
-    ...(product.color ? [['color', 'Цвет', product.color]] : []),
-    ...dimensionRows(product).map(([label, value]) => ['dims', label, value]),
+    ...(product.color ? [['Цвет', product.color]] : []),
+    ...dimensionRows(product),
     ...specRows
   ];
   const inCart = cart.has(product.id);
@@ -22,13 +22,13 @@ export default function ProductView({ product }) {
 
   return (
     <>
-      <nav className="crumbs" aria-label="Путь" data-field="category">
+      <nav className="crumbs" aria-label="Путь">
         <Link to="/">Главная</Link>
         <Link to="/catalog">Каталог</Link>
         <Link to={`/catalog?category=${product.category}`}>{categoryName(product.category) || 'Раздел'}</Link>
       </nav>
       <div className="product-layout">
-        <div className="gallery" data-field="images">
+        <div className="gallery">
           <div className="gallery-main">
             {product.images[current] ? <img src={product.images[current]} alt={`${product.name}, фото ${current + 1}`} width="800" height="800" /> : <span className="tile-empty">Нет фото</span>}
           </div>
@@ -43,8 +43,8 @@ export default function ProductView({ product }) {
           )}
         </div>
         <div className="product-info">
-          <h1 data-field="name">{product.name || 'Название товара'}</h1>
-          <p className="product-price" data-field="price">{formatPrice(product.price)}</p>
+          <h1>{product.name || 'Название товара'}</h1>
+          <p className="product-price">{formatPrice(product.price)}</p>
           <div className="buy">
             <div className="buy-main">
               {inCart
@@ -57,12 +57,12 @@ export default function ProductView({ product }) {
               <a className="button button-outline" href={quickOrder.telegram} target="_blank" rel="noopener noreferrer">Заказать в Telegram</a>
             </div>
           </div>
-          {product.description && <p className="product-description" data-field="description">{product.description}</p>}
+          {product.description && <p className="product-description">{product.description}</p>}
           {rows.length > 0 && (
             <>
               <h2 className="info-heading">Характеристики</h2>
               <dl className="specs">
-                {rows.map(([field, label, value], index) => <div key={`${label}-${index}`} data-field={field}><dt>{label}</dt><dd>{value}</dd></div>)}
+                {rows.map(([label, value], index) => <div key={`${label}-${index}`}><dt>{label}</dt><dd>{value}</dd></div>)}
               </dl>
             </>
           )}

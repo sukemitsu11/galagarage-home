@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useSite } from '../site.jsx';
-import CategorySquares from '../components/CategorySquares.jsx';
-import { PreviewPanel, SiteDraft } from './Preview.jsx';
-import { FileButton, uploadFiles } from './shared.jsx';
+import { Field, FileButton, uploadFiles } from './shared.jsx';
 
 function CategoryEditor({ category, onSave, onCancel, submitLabel }) {
-  const site = useSite();
   const [name, setName] = useState(category.name);
   const [image, setImage] = useState(category.image);
   const [busy, setBusy] = useState(false);
@@ -32,22 +29,18 @@ function CategoryEditor({ category, onSave, onCancel, submitLabel }) {
     }
   }
 
-  const inputId = `c-name-${category.id || 'new'}`;
-  const draftId = category.id || 'new';
-  // The same row visitors see on the home page, with this category as typed.
-  const draftCategories = category.id
-    ? site.categories.map(item => item.id === category.id ? { ...item, name: name.trim() || 'Название раздела', image } : item)
-    : [...site.categories, { id: 'new', name: name.trim() || 'Название раздела', image }];
+  const key = category.id || 'new';
   return (
-    <div className="category-edit">
     <form className="category-editor" onSubmit={submit}>
       <div className="category-photo">
         {image ? <img src={image} alt="" width="120" height="120" /> : <span className="no-photo">Нет фото</span>}
-        <FileButton id={`c-photo-${category.id || 'new'}`} label={busy ? 'Загружаем…' : image ? 'Заменить фото' : 'Загрузить фото'} disabled={busy} onFiles={replace} />
+        <FileButton id={`c-photo-${key}`} label={busy ? 'Загружаем…' : image ? 'Заменить фото' : 'Загрузить фото'} disabled={busy} onFiles={replace} />
+        <p className="field-hint">Квадратное фото от 800 px. Показывается квадратом на главной странице и над каталогом.</p>
       </div>
-      <div className="field">
-        <label htmlFor={inputId}>Название раздела</label>
-        <input id={inputId} name="name" autoComplete="off" required maxLength={60} value={name} onChange={event => setName(event.target.value)} />
+      <div className="field-stack">
+        <Field id={`c-name-${key}`} label="Название раздела" hint="Подпись под фото-квадратом, а также пункт в меню, в фильтре каталога и в подвале.">
+          <input id={`c-name-${key}`} name="name" autoComplete="off" required maxLength={60} value={name} onChange={event => setName(event.target.value)} aria-describedby={`c-name-${key}-hint`} />
+        </Field>
         <p className="form-error" role="alert">{error}</p>
         <div className="inline-actions">
           <button className="btn btn-primary" type="submit" disabled={busy}>{submitLabel}</button>
@@ -55,12 +48,6 @@ function CategoryEditor({ category, onSave, onCancel, submitLabel }) {
         </div>
       </div>
     </form>
-    <PreviewPanel title="Разделы на главной" highlight={`category-${draftId}`} width={760}>
-      <SiteDraft categories={draftCategories}>
-        <div className="shelf"><div className="shelf-head"><h2>Разделы</h2></div><CategorySquares /></div>
-      </SiteDraft>
-    </PreviewPanel>
-    </div>
   );
 }
 

@@ -83,7 +83,7 @@ export function PhotoList({ images, onChange, max = 10, onError }) {
       {images.length < max && (
         <div className="photo-add">
           <FileButton id="product-photos" label={uploading ? 'Загружаем…' : 'Добавить фото'} multiple disabled={uploading} onFiles={add} />
-          <span className="hint">JPG, PNG или WebP до 6 МБ. Можно выбрать несколько. Первое фото показывается в каталоге.</span>
+          <span className="hint">JPG, PNG или WebP до 6 МБ. Можно выбрать сразу несколько.</span>
         </div>
       )}
     </div>
@@ -101,4 +101,15 @@ export function useNotice() {
   };
   useEffect(() => () => clearTimeout(timer.current), []);
   return [notice, show];
+}
+
+// A labelled field with a short explanation of where its value shows up on the site.
+export function Field({ id, label, hint, children }) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      {children}
+      {hint && <p className="field-hint" id={`${id}-hint`}>{hint}</p>}
+    </div>
+  );
 }

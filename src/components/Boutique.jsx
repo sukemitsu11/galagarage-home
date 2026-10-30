@@ -7,10 +7,10 @@ export default function Boutique({ contacts }) {
         <p>Приходите рассмотреть предметы вживую: в бутике есть то, что не попало на сайт.</p>
       </div>
       <dl className="facts">
-        <div><dt>Адрес</dt><dd data-field="address">{contacts.address}</dd></div>
-        <div><dt>Часы</dt><dd data-field="hours">{contacts.hours}</dd></div>
-        <div><dt>Телефон</dt><dd><a data-field="phone" href={contacts.phoneHref}>{contacts.phone}</a></dd></div>
-        {contacts.gis && <div><dt>2ГИС</dt><dd><a data-field="gisUrl" href={contacts.gis} target="_blank" rel="noopener noreferrer">Маршрут и отзывы, оценка 5</a></dd></div>}
+        <div><dt>Адрес</dt><dd>{contacts.address}</dd></div>
+        <div><dt>Часы</dt><dd>{contacts.hours}</dd></div>
+        <div><dt>Телефон</dt><dd><a href={contacts.phoneHref}>{contacts.phone}</a></dd></div>
+        {contacts.gis && <div><dt>2ГИС</dt><dd><a href={contacts.gis} target="_blank" rel="noopener noreferrer">Маршрут и отзывы, оценка 5</a></dd></div>}
       </dl>
     </section>
   );

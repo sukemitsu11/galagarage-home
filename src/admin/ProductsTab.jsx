@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { formatPrice } from '../lib.js';
-import ProductTile from '../components/ProductTile.jsx';
-import ProductView from '../components/ProductView.jsx';
 import { useSite } from '../site.jsx';
 import { useProducts } from '../store.jsx';
-import { PreviewPanel, useFocusedField } from './Preview.jsx';
-import { PhotoList, useUnsavedWarning } from './shared.jsx';
+import { Field, PhotoList, useUnsavedWarning } from './shared.jsx';
 
 const blank = { id: 0, name: '', category: '', price: '', color: '', heightCm: '', widthCm: '', lengthCm: '', description: '', specs: [], images: [], published: true };
 
@@ -35,30 +32,6 @@ function ProductForm({ initial, onSaved, onClose }) {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const dirty = JSON.stringify(form) !== JSON.stringify(start);
   useUnsavedWarning(dirty);
-  const catalog = useProducts();
-  const [focus, focusProps] = useFocusedField();
-  const [tab, setTab] = useState('card');
-
-  // Fields that only show on the product page switch the preview to it.
-  useEffect(() => {
-    if (['category', 'color', 'dims', 'description', 'specs'].includes(focus)) setTab('page');
-  }, [focus]);
-
-  const draft = useMemo(() => ({
-    id: form.id || -1,
-    name: form.name.trim(),
-    description: form.description.trim(),
-    category: form.category,
-    price: Number(String(form.price).replace(/\s/g, '')) || 0,
-    color: form.color.trim(),
-    heightCm: number(form.heightCm),
-    widthCm: number(form.widthCm),
-    lengthCm: number(form.lengthCm),
-    specs: form.specs,
-    images: form.images,
-    published: form.published
-  }), [form]);
-  const neighbours = catalog.products.filter(item => item.id !== form.id).slice(0, 2);
 
   const set = (key, value) => setForm(current => ({ ...current, [key]: value }));
   const setImages = update => setForm(current => ({ ...current, images: typeof update === 'function' ? update(current.images) : update }));
@@ -87,12 +60,12 @@ function ProductForm({ initial, onSaved, onClose }) {
   }
 
   return (
-    <div className="edit-layout">
-    <form className="panel product-form" onSubmit={submit} {...focusProps}>
+    <form className="panel product-form" onSubmit={submit}>
       <div className="panel-head">
         <h2>{form.id ? 'Редактирование товара' : 'Новый товар'}</h2>
         <button className="link" type="button" onClick={close}>К списку товаров</button>
       </div>
+      <p className="form-intro">Всё, что вы здесь заполните, увидят покупатели. Обязательные поля: название, раздел и цена. Остальное можно добавить позже.</p>
       {confirmLeave && (
         <div className="confirm" role="alert">
           <span>Есть несохранённые изменения.</span>
@@ -103,41 +76,40 @@ function ProductForm({ initial, onSaved, onClose }) {
 
       <div className="form-columns">
         <div className="form-main">
-          <div className="field" data-field="name">
-            <label htmlFor="f-name">Название</label>
-            <input id="f-name" name="name" autoComplete="off" required maxLength={120} value={form.name} onChange={event => set('name', event.target.value)} />
+          <Field id="f-name" label="Название" hint="Показывается под фото в каталоге, заголовком на странице товара и в сообщении заказа. Например: «Ваза Mushroom».">
+            <input id="f-name" name="name" autoComplete="off" required maxLength={120} value={form.name} onChange={event => set('name', event.target.value)} aria-describedby="f-name-hint" />
+          </Field>
+          <Field id="f-category" label="Раздел" hint="Раздел каталога, где лежит товар. Разделы создаются на вкладке «Разделы».">
+            <select id="f-category" name="category" value={form.category} onChange={event => set('category', event.target.value)} required aria-describedby="f-category-hint">
+              {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+          </Field>
+          <div className="field-row two">
+            <Field id="f-price" label="Цена, ₽" hint="Целое число рублей. Видна в каталоге и попадает в сообщение заказа.">
+              <input id="f-price" name="price" autoComplete="off" required inputMode="numeric" placeholder="4500" value={form.price} onChange={event => set('price', event.target.value)} aria-describedby="f-price-hint" />
+            </Field>
+            <Field id="f-color" label="Цвет" hint="Показывается на странице товара. По этим цветам покупатели фильтруют каталог.">
+              <input id="f-color" name="color" autoComplete="off" maxLength={40} placeholder="Серый" value={form.color} onChange={event => set('color', event.target.value)} aria-describedby="f-color-hint" />
+            </Field>
           </div>
-          <div className="field-row">
-            <div className="field" data-field="category">
-              <label htmlFor="f-category">Раздел</label>
-              <select id="f-category" name="category" value={form.category} onChange={event => set('category', event.target.value)} required>
-                {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
-            </div>
-            <div className="field" data-field="price">
-              <label htmlFor="f-price">Цена, ₽</label>
-              <input id="f-price" name="price" autoComplete="off" required inputMode="numeric" placeholder="4500" value={form.price} onChange={event => set('price', event.target.value)} />
-            </div>
-            <div className="field" data-field="color">
-              <label htmlFor="f-color">Цвет</label>
-              <input id="f-color" name="color" autoComplete="off" maxLength={40} placeholder="Серый" value={form.color} onChange={event => set('color', event.target.value)} />
-            </div>
-          </div>
-          <fieldset className="field-row" data-field="dims">
+          <fieldset className="field">
             <legend>Размеры, см</legend>
-            {[['heightCm', 'Высота'], ['widthCm', 'Ширина'], ['lengthCm', 'Длина']].map(([key, label]) => (
-              <div className="field" key={key}>
-                <label htmlFor={`f-${key}`}>{label}</label>
-                <input id={`f-${key}`} name={key} autoComplete="off" inputMode="decimal" value={form[key]} onChange={event => set(key, event.target.value)} />
-              </div>
-            ))}
+            <p className="field-hint">Необязательно. Показываются в таблице характеристик на странице товара. Дробные числа пишите через запятую: 46,5.</p>
+            <div className="field-row">
+              {[['heightCm', 'Высота'], ['widthCm', 'Ширина'], ['lengthCm', 'Длина']].map(([key, label]) => (
+                <div className="field" key={key}>
+                  <label htmlFor={`f-${key}`}>{label}</label>
+                  <input id={`f-${key}`} name={key} autoComplete="off" inputMode="decimal" value={form[key]} onChange={event => set(key, event.target.value)} />
+                </div>
+              ))}
+            </div>
           </fieldset>
-          <div className="field" data-field="description">
-            <label htmlFor="f-description">Описание</label>
-            <textarea id="f-description" name="description" autoComplete="off" rows="5" maxLength={4000} value={form.description} onChange={event => set('description', event.target.value)} />
-          </div>
-          <fieldset className="field" data-field="specs">
+          <Field id="f-description" label="Описание" hint="Короткий рассказ о предмете на странице товара: из чего сделан, для чего подходит. Можно оставить пустым.">
+            <textarea id="f-description" name="description" autoComplete="off" rows="5" maxLength={4000} value={form.description} onChange={event => set('description', event.target.value)} aria-describedby="f-description-hint" />
+          </Field>
+          <fieldset className="field">
             <legend>Характеристики</legend>
+            <p className="field-hint">Пары «название и значение», например «Материал: дуб». Показываются таблицей на странице товара, под цветом и размерами.</p>
             {form.specs.map((spec, index) => (
               <div className="spec-row" key={index}>
                 <input aria-label={`Название характеристики ${index + 1}`} placeholder="Материал" maxLength={60} value={spec.label} onChange={event => updateSpec(index, 'label', event.target.value)} />
@@ -150,13 +122,17 @@ function ProductForm({ initial, onSaved, onClose }) {
         </div>
 
         <div className="form-side">
-          <fieldset className="field" data-field="images">
+          <fieldset className="field">
             <legend>Фотографии</legend>
+            <p className="field-hint">Первое фото показывается в каталоге и на главной, остальные листаются на странице товара. Лучше всего подходят квадратные фото от 800 px.</p>
             <PhotoList images={form.images} onChange={setImages} onError={setError} />
           </fieldset>
           <label className="switch">
             <input type="checkbox" checked={form.published} onChange={event => set('published', event.target.checked)} />
-            <span>Показывать на сайте</span>
+            <span>
+              Показывать на сайте
+              <small>Если выключить, товар пропадёт с сайта, но останется в этом списке и его можно вернуть.</small>
+            </span>
           </label>
         </div>
       </div>
@@ -167,21 +143,6 @@ function ProductForm({ initial, onSaved, onClose }) {
         <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Сохраняем…' : 'Сохранить'}</button>
       </div>
     </form>
-    <PreviewPanel
-      title={tab === 'card' ? 'Карточка в каталоге' : 'Страница товара'}
-      tabs={[{ id: 'card', label: 'В каталоге' }, { id: 'page', label: 'Страница товара' }]}
-      tab={tab}
-      onTab={setTab}
-      highlight={focus}
-      width={tab === 'card' ? 540 : 820}
-    >
-      {tab === 'card' ? (
-        <div className="page"><div className="grid preview-grid"><ProductTile product={draft} />{neighbours.map(item => <div key={item.id} className="preview-context" data-preview-skip=""><ProductTile product={item} /></div>)}</div></div>
-      ) : (
-        <div className="page"><ProductView product={draft} /></div>
-      )}
-    </PreviewPanel>
-    </div>
   );
 }
 

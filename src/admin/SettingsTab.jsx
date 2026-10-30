@@ -1,21 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { useSite } from '../site.jsx';
-import Banner from '../components/Banner.jsx';
-import Boutique from '../components/Boutique.jsx';
-import Footer from '../components/Footer.jsx';
-import { contactsFrom } from '../config.js';
-import { PreviewPanel, SiteDraft, useFocusedField } from './Preview.jsx';
-import { FileButton, uploadFiles, useUnsavedWarning } from './shared.jsx';
+import { Field, FileButton, uploadFiles, useUnsavedWarning } from './shared.jsx';
 
 const contactFields = [
-  ['phone', 'Телефон', '+7 (913) 608-07-35', 'Показывается на сайте, по нажатию звонок.'],
-  ['whatsapp', 'WhatsApp', '79136080735', 'Номер только цифрами, на него придут заказы из корзины.'],
-  ['telegram', 'Telegram', '+79136080735', 'Номер с плюсом или имя пользователя без @. Для номера включите в Telegram поиск по номеру.'],
-  ['channel', 'Telegram-канал', 'galagarage_home', 'Имя канала без @. Можно оставить пустым.'],
-  ['address', 'Адрес', 'Омск, улица Карла Либкнехта, 26', ''],
-  ['hours', 'Часы работы', 'Ежедневно, 11:00–20:00', ''],
-  ['gisUrl', 'Ссылка на 2ГИС', 'https://2gis.ru/omsk/firm/…', 'Карточка бутика: маршрут и отзывы.']
+  ['phone', 'Телефон', '+7 (913) 608-07-35', 'Показывается в блоке «Бутик» и в подвале. На телефоне по нажатию начинается звонок.'],
+  ['whatsapp', 'WhatsApp', '79136080735', 'Номер только цифрами, с кодом страны. На него уходит заказ из корзины и со страницы товара.'],
+  ['telegram', 'Telegram', '+79136080735', 'Куда уходит заказ в Telegram: номер с плюсом или имя пользователя без @. Для номера в Telegram должен быть разрешён поиск по номеру.'],
+  ['channel', 'Telegram-канал', 'galagarage_home', 'Ссылка на канал в подвале. Имя без @. Можно оставить пустым.'],
+  ['address', 'Адрес', 'Омск, улица Карла Либкнехта, 26', 'Показывается в блоке «Бутик» и в подвале.'],
+  ['hours', 'Часы работы', 'Ежедневно, 11:00–20:00', 'Показываются в блоке «Бутик» и в подвале.'],
+  ['gisUrl', 'Ссылка на 2ГИС', 'https://2gis.ru/omsk/firm/…', 'Ссылки «Маршрут и отзывы» в блоке «Бутик» и «Мы в 2ГИС» в подвале. Скопируйте адрес карточки бутика из 2ГИС.']
 ];
 
 export default function SettingsTab(props) {
@@ -34,14 +29,6 @@ function SettingsForm({ onNotice }) {
   const [error, setError] = useState('');
   const dirty = JSON.stringify(form) !== JSON.stringify(start);
   useUnsavedWarning(dirty);
-  const [focus, focusProps] = useFocusedField();
-  const [tab, setTab] = useState('banner');
-
-  // Banner fields show the top of the home page, contact fields show the bottom.
-  useEffect(() => {
-    if (focus.startsWith('banner')) setTab('banner');
-    else if (focus) setTab('contacts');
-  }, [focus]);
 
   const set = (key, value) => setForm(current => ({ ...current, [key]: value }));
 
@@ -68,46 +55,42 @@ function SettingsForm({ onNotice }) {
   }
 
   return (
-    <div className="edit-layout">
-    <form className="panel" onSubmit={submit} {...focusProps}>
+    <form className="panel" onSubmit={submit}>
       <div className="panel-head"><h2>Настройки сайта</h2></div>
+      <p className="form-intro">Здесь контакты бутика и верх главной страницы. Под каждым полем написано, где это видно на сайте. Изменения появятся у покупателей сразу после сохранения.</p>
 
       <fieldset className="settings-group">
-        <legend>Контакты</legend>
-        <p className="hint">Эти данные выводятся в шапке, подвале, блоке «Бутик» и подставляются в ссылки на заказ.</p>
+        <legend>Контакты бутика</legend>
         <div className="settings-grid">
           {contactFields.map(([key, label, placeholder, hint]) => (
-            <div className="field" key={key} data-field={key}>
-              <label htmlFor={`s-${key}`}>{label}</label>
-              <input id={`s-${key}`} name={key} autoComplete="off" spellCheck={false} placeholder={placeholder} value={form[key]} onChange={event => set(key, event.target.value)} aria-describedby={hint ? `s-${key}-hint` : undefined} />
-              {hint && <span className="hint" id={`s-${key}-hint`}>{hint}</span>}
-            </div>
+            <Field key={key} id={`s-${key}`} label={label} hint={hint}>
+              <input id={`s-${key}`} name={key} autoComplete="off" spellCheck={false} placeholder={placeholder} value={form[key]} onChange={event => set(key, event.target.value)} aria-describedby={`s-${key}-hint`} />
+            </Field>
           ))}
         </div>
       </fieldset>
 
       <fieldset className="settings-group">
-        <legend>Главная страница</legend>
+        <legend>Верх главной страницы</legend>
         <div className="settings-grid">
-          <div className="field" data-field="bannerTitle">
-            <label htmlFor="s-title">Заголовок баннера</label>
-            <input id="s-title" name="bannerTitle" autoComplete="off" maxLength={80} value={form.bannerTitle} onChange={event => set('bannerTitle', event.target.value)} />
-          </div>
-          <div className="field" data-field="bannerText">
-            <label htmlFor="s-text">Текст под заголовком</label>
-            <input id="s-text" name="bannerText" autoComplete="off" maxLength={200} value={form.bannerText} onChange={event => set('bannerText', event.target.value)} />
-          </div>
+          <Field id="s-title" label="Заголовок" hint="Крупная надпись над кнопкой «Смотреть каталог» на главной странице.">
+            <input id="s-title" name="bannerTitle" autoComplete="off" maxLength={80} value={form.bannerTitle} onChange={event => set('bannerTitle', event.target.value)} aria-describedby="s-title-hint" />
+          </Field>
+          <Field id="s-text" label="Строка под заголовком" hint="Одна фраза о бутике под заголовком. Можно оставить пустой.">
+            <input id="s-text" name="bannerText" autoComplete="off" maxLength={200} value={form.bannerText} onChange={event => set('bannerText', event.target.value)} aria-describedby="s-text-hint" />
+          </Field>
         </div>
-        <p className="field-label">Три фото баннера</p>
+        <p className="field-label">Три фото главной страницы</p>
+        <p className="field-hint">Показываются в ряд под шапкой сайта, слева направо. Лучше вертикальные фото от 800 px по короткой стороне.</p>
         <ul className="banner-slots">
           {form.bannerImages.map((src, index) => (
-            <li key={index} data-field={`bannerImages-${index}`}>
-              <img src={src} alt={`Фото баннера ${index + 1}`} width="200" height="260" />
+            <li key={index}>
+              <img src={src} alt={`Фото ${index + 1} на главной`} width="200" height="260" />
+              <span className="slot-name">{['Слева', 'По центру', 'Справа'][index]}</span>
               <FileButton id={`s-banner-${index}`} label={uploading === index ? 'Загружаем…' : 'Заменить'} disabled={uploading !== -1} onFiles={files => replaceBanner(index, files)} />
             </li>
           ))}
         </ul>
-        <p className="hint">Лучше вертикальные фото, от 800 px по короткой стороне.</p>
       </fieldset>
 
       <div className="form-footer">
@@ -116,18 +99,5 @@ function SettingsForm({ onNotice }) {
         <button className="btn btn-primary" type="submit" disabled={busy || !dirty}>{busy ? 'Сохраняем…' : 'Сохранить настройки'}</button>
       </div>
     </form>
-    <PreviewPanel
-      title={tab === 'banner' ? 'Главная страница, баннер' : 'Контакты и подвал'}
-      tabs={[{ id: 'banner', label: 'Баннер' }, { id: 'contacts', label: 'Контакты' }]}
-      tab={tab}
-      onTab={setTab}
-      highlight={focus}
-      width={820}
-    >
-      <SiteDraft settings={form}>
-        {tab === 'banner' ? <Banner settings={form} /> : <><Boutique contacts={contactsFrom(form)} /><Footer /></>}
-      </SiteDraft>
-    </PreviewPanel>
-    </div>
   );
 }

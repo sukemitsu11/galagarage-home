@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api } from './api.js';
 import { contactsFrom, defaultSettings } from './config.js';
 
-export const SiteContext = createContext(null);
+const SiteContext = createContext(null);
 export const useSite = () => useContext(SiteContext);
 
 // Categories and contact settings edited in the admin panel.

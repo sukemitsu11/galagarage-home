@@ -22,7 +22,7 @@
 .admin-tabs a:hover { color: var(--a-text); }
 .admin-tabs a.active { color: var(--a-text); border-color: var(--a-accent); }
 .admin-top-actions { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-.admin-main { max-width: 1440px; margin: 0 auto; padding: 24px 24px 80px; }
+.admin-main { max-width: 1120px; margin: 0 auto; padding: 24px 24px 80px; }
 
 .panel { background: var(--a-surface); border: 1px solid var(--a-line); padding: 24px; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -141,44 +141,16 @@ button.row-main:hover strong { color: var(--a-accent); }
   .banner-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-/* Live preview: the real storefront with draft values, scaled to fit. */
-.edit-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 580px); gap: 24px; align-items: start; }
-.edit-layout .product-form .form-columns { grid-template-columns: 1fr; }
-.edit-layout .form-side { order: 0; }
-
-.preview { position: sticky; top: 76px; background: #1d1d1b; color: #fff; border-top: 4px solid var(--a-accent); box-shadow: 0 12px 32px rgb(0 0 0 / .16); }
-.preview-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 16px 12px; }
-.preview-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #f3a581; }
-.preview-head h3 { font-size: 16px; font-weight: 500; color: #fff; }
-.preview-tabs { display: flex; gap: 4px; }
-.preview-tabs button { min-height: 34px; padding: 0 12px; border: 1px solid #52514d; color: #e0dfda; font-size: 13px; transition: background-color .15s ease, border-color .15s ease; }
-.preview-tabs button:hover { border-color: #fff; }
-.preview-tabs button.is-active { background: var(--a-accent); border-color: var(--a-accent); color: #fff; }
-.preview-screen { margin: 0 12px; max-height: calc(100dvh - 240px); overflow: auto; background: #fff; scrollbar-width: thin; }
-.preview-viewport { position: relative; overflow: hidden; }
-.preview-canvas { transform-origin: top left; background: #fff; color: #1b1b1b; font: 15px/1.6 Onest, Arial, sans-serif; pointer-events: none; user-select: none; }
-.preview-note { padding: 12px 16px 14px; font-size: 12px; line-height: 1.5; color: #c4c3bd; }
-
-.preview-canvas .header { position: static; }
-.preview-canvas .page { min-height: 0; padding-bottom: 24px; }
-.preview-canvas .footer { margin-top: 0; }
-.preview-canvas .product-info { position: static; }
-.preview .preview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 16px; }
-.preview-canvas .shelf { padding-bottom: 24px; }
-
-.preview-hit { outline: 6px solid #cc4a12 !important; outline-offset: 6px; background-color: rgb(204 74 18 / .12); transition: outline-color .15s ease; }
-img.preview-hit, .tile-media.preview-hit, .gallery.preview-hit, li.preview-hit { outline-offset: -6px; }
-
-.category-edit { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 24px; align-items: start; }
-.category-edit .preview { position: static; }
-
-@media (max-width: 1180px) {
-  .edit-layout, .category-edit { grid-template-columns: 1fr; }
-  .preview { position: static; order: -1; }
-  .preview-screen { max-height: 320px; }
-}
-
-.preview-context { opacity: .5; }
-
-.edit-layout > *, .category-edit > * { min-width: 0; }
-.preview, .preview-screen { max-width: 100%; }
+/* Field descriptions */
+.form-intro { margin: -4px 0 20px; max-width: 70ch; color: var(--a-muted); font-size: 15px; line-height: 1.55; }
+.field-hint { font-size: 13px; line-height: 1.5; color: var(--a-muted); max-width: 60ch; }
+.field > .field-hint { margin-top: -2px; }
+fieldset.field > .field-hint, .settings-group > .field-hint { margin: 0 0 8px; }
+.field-row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.field-stack { display: grid; gap: 10px; align-content: start; max-width: 460px; }
+.switch { align-items: flex-start; }
+.switch input { margin-top: 3px; flex: none; }
+.switch span { display: grid; gap: 2px; }
+.switch small { font-size: 13px; line-height: 1.5; color: var(--a-muted); }
+.slot-name { font-size: 13px; color: var(--a-muted); }
+.category-editor .category-photo { max-width: 200px; }

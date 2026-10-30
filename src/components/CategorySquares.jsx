@@ -16,7 +16,7 @@ export default function CategorySquares({ active, onSelect, counts }) {
           </>
         );
         return (
-          <li key={category.id} data-field={`category-${category.id}`}>
+          <li key={category.id}>
             {onSelect
               ? <button type="button" className={`square${active === category.id ? ' is-active' : ''}`} aria-pressed={active === category.id} onClick={() => onSelect(category.id)}>{content}</button>
               : <Link className="square" to={category.id === 'all' ? '/catalog' : `/catalog?category=${category.id}`}>{content}</Link>}
