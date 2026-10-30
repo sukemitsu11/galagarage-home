@@ -107,6 +107,41 @@
       "file": "assets/chair-detail.jpg",
       "source": "https://t.me/galagarage_home/22290",
       "image": "https://t.me/galagarage_home/22291?single"
+    },
+    {
+      "retrieved": "2026-10-30",
+      "file": "public/assets/category-decor.jpg",
+      "source": "Unsplash, https://images.unsplash.com/photo-1613424777445-f93a2a48e285",
+      "license": "Unsplash License, https://unsplash.com/license",
+      "note": "Stock photo for a catalog category tile, not a boutique product."
+    },
+    {
+      "retrieved": "2026-10-30",
+      "file": "public/assets/category-tableware.jpg",
+      "source": "Unsplash, https://images.unsplash.com/photo-1740478949628-ff562c3c3923",
+      "license": "Unsplash License, https://unsplash.com/license",
+      "note": "Stock photo for a catalog category tile, not a boutique product."
+    },
+    {
+      "retrieved": "2026-10-30",
+      "file": "public/assets/category-textiles.jpg",
+      "source": "Unsplash, https://images.unsplash.com/photo-1591625591034-75d303d2e1a4",
+      "license": "Unsplash License, https://unsplash.com/license",
+      "note": "Stock photo for a catalog category tile, not a boutique product."
+    },
+    {
+      "retrieved": "2026-10-30",
+      "file": "public/assets/category-furniture.jpg",
+      "source": "Unsplash, https://images.unsplash.com/photo-1605702098590-d552a98dc93d",
+      "license": "Unsplash License, https://unsplash.com/license",
+      "note": "Stock photo for a catalog category tile, not a boutique product."
+    },
+    {
+      "retrieved": "2026-10-30",
+      "file": "public/assets/category-all.jpg",
+      "source": "Unsplash, https://images.unsplash.com/photo-1781157081125-733db5a32356",
+      "license": "Unsplash License, https://unsplash.com/license",
+      "note": "Stock photo for a catalog category tile, not a boutique product."
     }
   ]
 }

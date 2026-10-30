@@ -6,3 +6,8 @@ Thumbs.db
 .env.*
 !.env.example
 .codebase-memory/
+dist/
+uploads/
+server/*.exe
+.env
+uploads-test/

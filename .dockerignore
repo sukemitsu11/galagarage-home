@@ -1,0 +1,11 @@
+node_modules
+dist
+server
+.git
+.env
+uploads
+.env.*
+!.env.example
+*.pem
+*.key
+.codebase-memory

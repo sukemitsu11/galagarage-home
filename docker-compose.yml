@@ -1,0 +1,64 @@
+# Три сервиса: db (Postgres), backend (Go API), frontend (nginx со статикой React).
+# Образы берутся из Docker Hub (DOCKERHUB_USER) или собираются локально: docker compose build.
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: galagarage
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      POSTGRES_DB: galagarage
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U galagarage"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [internal]
+
+  backend:
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/galagarage-backend:${TAG:-latest}
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://galagarage:${DB_PASSWORD}@db:5432/galagarage?sslmode=disable
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      # Реальный адрес клиента принимается только от nginx (frontend) с фиксированным адресом.
+      TRUSTED_PROXIES: 172.28.0.10
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    volumes:
+      - uploads:/data/uploads
+    networks: [internal]
+
+  frontend:
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/galagarage-frontend:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${HTTP_PORT:-8080}:8080"
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    networks:
+      internal:
+        ipv4_address: 172.28.0.10
+
+networks:
+  internal:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+volumes:
+  pgdata:
+  uploads:

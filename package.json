@@ -2,9 +2,23 @@
   "name": "galagarage-home",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Концепт сайта бутика Galagarage home в Омске",
   "scripts": {
-    "start": "node server.cjs",
-    "check": "node --check catalog.js && node --check app.js && node --check server.cjs"
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "vite build"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.5"
   }
 }

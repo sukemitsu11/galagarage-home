@@ -1,0 +1,7 @@
+*.exe
+uploads
+.env*
+!.env.example
+.git
+*.pem
+*.key
