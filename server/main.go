@@ -92,6 +92,7 @@ func main() {
 	api.GET("/categories", h.categories)
 	api.GET("/settings", h.settings)
 	api.GET("/seo/*path", h.seoHead)
+	api.GET("/route", h.routeCheck)
 	api.POST("/admin/login", auth.login)
 	api.POST("/admin/logout", auth.logout)
 	admin := api.Group("/admin", auth.require)

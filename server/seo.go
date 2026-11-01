@@ -212,6 +212,45 @@ func (h *Handlers) pageFor(ctx context.Context, base, path string) seoPage {
 	return seoPage{Title: "Страница не найдена | " + siteName, Description: "Такой страницы нет. Вернитесь в каталог.", NoIndex: true}
 }
 
+// routeExists reports whether a storefront address leads to a real page. Unknown sections and products
+// and hidden products are not real, so nginx can answer them with HTTP 404.
+func (h *Handlers) routeExists(ctx context.Context, path string) bool {
+	if !seoPathValue.MatchString(path) {
+		return false
+	}
+	path = strings.TrimRight(path, "/")
+	if path == "" || path == "/catalog" || path == "/favorites" {
+		return true
+	}
+	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	switch {
+	case parts[0] == "admin":
+		return true
+	case len(parts) == 2 && parts[0] == "catalog":
+		ok, err := categoryExists(ctx, h.pool, parts[1])
+		return err != nil || ok // a database error must not turn real pages into 404s
+	case len(parts) == 2 && parts[0] == "product":
+		_, err := getProduct(ctx, h.pool, parts[1], true)
+		return err == nil || !isNotFound(err)
+	}
+	return false
+}
+
+// routeCheck answers nginx's auth_request: 204 for a real page, 403 for an unknown one.
+func (h *Handlers) routeCheck(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+	defer cancel()
+	path := c.GetHeader("X-Seo-Path")
+	if path == "" {
+		path = "/"
+	}
+	if h.routeExists(ctx, path) {
+		c.Status(http.StatusNoContent)
+		return
+	}
+	c.Status(http.StatusForbidden)
+}
+
 func meta(attr, name, content string) string {
 	return `<meta ` + attr + `="` + name + `" content="` + html.EscapeString(content) + `">` + "\n"
 }

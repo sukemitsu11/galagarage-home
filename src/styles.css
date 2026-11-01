@@ -283,6 +283,31 @@ li { list-style: none; }
   .specs > div { grid-template-columns: 120px 1fr; }
 }
 
+/* 404: the zero of "404" is a square photo of the newest item. Sizes are in em so the digits and the photo scale together. */
+.lost { padding-top: clamp(24px, 5vw, 64px); }
+.lost-top { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end; gap: 28px clamp(32px, 6vw, 96px); }
+.lost-mark { display: flex; align-items: center; gap: .04em; font-size: clamp(96px, 22vw, 320px); font-weight: 200; line-height: 1; letter-spacing: -.04em; user-select: none; }
+.lost-photo { flex: none; width: .56em; height: .71em; margin-top: -.05em; border-radius: 50%; background: var(--mist); overflow: hidden; }
+.lost-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 52%; }
+.lost-text { display: grid; gap: 14px; justify-items: start; max-width: 460px; padding-bottom: .6vw; }
+.lost-text p { color: var(--muted); }
+.lost-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.lost-shelf { padding: clamp(40px, 6vw, 80px) 0 0; }
+.grid.lost-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 1000px) {
+  .lost-top { grid-template-columns: 1fr; }
+  .grid.lost-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lost-photo { animation: lost-settle .9s cubic-bezier(.16, 1, .3, 1) both; }
+  @keyframes lost-settle {
+    from { opacity: 0; transform: translateY(-.14em) rotate(-5deg); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
