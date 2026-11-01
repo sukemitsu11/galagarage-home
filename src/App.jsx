@@ -7,6 +7,7 @@ import Catalog from './pages/Catalog.jsx';
 import Favorites from './pages/Favorites.jsx';
 import Home from './pages/Home.jsx';
 import Product from './pages/Product.jsx';
+import { SITE_NAME, usePageMeta } from './seo.js';
 
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
 
@@ -20,6 +21,7 @@ function ScrollManager() {
 }
 
 function NotFound() {
+  usePageMeta({ title: `Страница не найдена | ${SITE_NAME}`, description: 'Такой страницы нет. Вернитесь в каталог.', noindex: true });
   return (
     <main id="main" className="page">
       <h1 className="page-title">Страницы нет</h1>
@@ -43,6 +45,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/catalog" element={<Catalog />} />
+        <Route path="/catalog/:category" element={<Catalog />} />
         <Route path="/product/:id" element={<Product />} />
         <Route path="/favorites" element={<Favorites />} />
         <Route path="*" element={<NotFound />} />

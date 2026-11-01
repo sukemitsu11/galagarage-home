@@ -15,7 +15,7 @@ export default function Footer() {
         <section aria-labelledby="f-catalog">
           <h2 id="f-catalog">Каталог</h2>
           <Link to="/catalog">Весь каталог</Link>
-          {categories.map(category => <Link key={category.id} to={`/catalog?category=${category.id}`}>{category.name}</Link>)}
+          {categories.map(category => <Link key={category.id} to={`/catalog/${category.id}`}>{category.name}</Link>)}
         </section>
         <section aria-labelledby="f-shop">
           <h2 id="f-shop">Бутик</h2>

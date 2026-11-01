@@ -30,7 +30,7 @@ export default function CartDrawer() {
               <li className="cart-line" key={product.id}>
                 {product.images[0] && <img src={product.images[0]} alt="" width="72" height="72" />}
                 <div className="cart-line-body">
-                  <Link className="cart-line-name" to={`/product/${product.id}`} onClick={close}>{product.name}</Link>
+                  <Link className="cart-line-name" to={`/product/${product.slug || product.id}`} onClick={close}>{product.name}</Link>
                   <span className="cart-line-meta">{product.color}</span>
                   <div className="qty" role="group" aria-label={`Количество: ${product.name}`}>
                     <button type="button" onClick={() => cart.setQty(product.id, qty - 1)} aria-label="Уменьшить количество">-</button>

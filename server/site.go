@@ -219,8 +219,9 @@ var translit = map[rune]string{
 	'х': "h", 'ц': "c", 'ч': "ch", 'ш': "sh", 'щ': "sch", 'ы': "y", 'э': "e", 'ю': "yu", 'я': "ya",
 }
 
-// slugFor turns a category name into a short latin id for URLs, e.g. "Свечи и ароматы" -> "svechi-i-aromaty".
-func slugFor(name string) string {
+// transliterate turns a Russian title into latin words joined by dashes, e.g. "Ваза Mushroom" -> "vaza-mushroom".
+// The result is cut near limit characters and is empty when the title has no letters or digits.
+func transliterate(name string, limit int) string {
 	var b strings.Builder
 	dash := false
 	for _, r := range strings.ToLower(name) {
@@ -238,11 +239,16 @@ func slugFor(name string) string {
 				dash = true
 			}
 		}
-		if b.Len() >= 40 {
+		if b.Len() >= limit {
 			break
 		}
 	}
-	slug := strings.Trim(b.String(), "-")
+	return strings.Trim(b.String(), "-")
+}
+
+// slugFor turns a category name into a short latin id for URLs, e.g. "Свечи и ароматы" -> "svechi-i-aromaty".
+func slugFor(name string) string {
+	slug := transliterate(name, 40)
 	if slug == "all" {
 		// "all" means the whole catalog on the storefront.
 		slug = "all-items"

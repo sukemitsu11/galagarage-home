@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import { api } from '../api.js';
+import { SITE_NAME, usePageMeta } from '../seo.js';
 import CategoriesTab from './CategoriesTab.jsx';
 import ProductsTab from './ProductsTab.jsx';
 import SettingsTab from './SettingsTab.jsx';
@@ -43,6 +44,7 @@ function Login({ onDone }) {
 }
 
 export default function AdminApp() {
+  usePageMeta({ title: `Управление сайтом | ${SITE_NAME}`, description: 'Вход для владельцев.', noindex: true });
   const [auth, setAuth] = useState('checking');
   const [notice, showNotice] = useNotice();
   const signOut = useCallback(() => setAuth('out'), []);

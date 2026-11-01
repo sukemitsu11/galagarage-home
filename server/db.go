@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -18,6 +20,7 @@ type Spec struct {
 
 type Product struct {
 	ID          int64     `json:"id"`
+	Slug        string    `json:"slug"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Category    string    `json:"category"`
@@ -32,11 +35,12 @@ type Product struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
-const productColumns = `id, name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published, created_at`
+const productColumns = `id, slug, name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published, created_at`
 
 const schema = `
 CREATE TABLE IF NOT EXISTS products (
 	id          BIGSERIAL PRIMARY KEY,
+	slug        TEXT NOT NULL DEFAULT '',
 	name        TEXT NOT NULL,
 	description TEXT NOT NULL DEFAULT '',
 	category    TEXT NOT NULL,
@@ -50,10 +54,73 @@ CREATE TABLE IF NOT EXISTS products (
 	published   BOOLEAN NOT NULL DEFAULT TRUE,
 	created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE products ADD COLUMN IF NOT EXISTS slug TEXT NOT NULL DEFAULT '';
 CREATE TABLE IF NOT EXISTS meta (
 	key   TEXT PRIMARY KEY,
 	value TEXT NOT NULL
 );`
+
+// productSlug builds the URL part of a product from its name. It is never empty and never only digits,
+// because digits alone mean an old numeric id in /product/:key.
+func productSlug(name string) string {
+	slug := transliterate(name, 60)
+	switch {
+	case slug == "":
+		return "tovar"
+	case strings.Trim(slug, "0123456789") == "":
+		return "tovar-" + slug
+	}
+	return slug
+}
+
+// freeSlug returns base, or base-2, base-3 and so on, the first one not in taken.
+func freeSlug(base string, taken map[string]bool) string {
+	slug := base
+	for n := 2; taken[slug]; n++ {
+		slug = base + "-" + strconv.Itoa(n)
+	}
+	return slug
+}
+
+// backfillSlugs gives a slug to products saved before slugs existed. Existing slugs never change.
+func backfillSlugs(ctx context.Context, tx pgx.Tx) error {
+	rows, err := tx.Query(ctx, `SELECT id, name, slug FROM products ORDER BY id`)
+	if err != nil {
+		return err
+	}
+	taken := map[string]bool{}
+	type missing struct {
+		id   int64
+		name string
+	}
+	var todo []missing
+	for rows.Next() {
+		var m missing
+		var slug string
+		if err := rows.Scan(&m.id, &m.name, &slug); err != nil {
+			rows.Close()
+			return err
+		}
+		if slug != "" {
+			taken[slug] = true
+		} else {
+			todo = append(todo, m)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, m := range todo {
+		slug := freeSlug(productSlug(m.name), taken)
+		taken[slug] = true
+		if _, err := tx.Exec(ctx, `UPDATE products SET slug = $2 WHERE id = $1`, m.id, slug); err != nil {
+			return err
+		}
+	}
+	_, err = tx.Exec(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS products_slug_key ON products (slug) WHERE slug <> ''`)
+	return err
+}
 
 func connect(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	pool, err := pgxpool.New(ctx, url)
@@ -83,13 +150,16 @@ func migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	if _, err := tx.Exec(ctx, schema); err != nil {
 		return err
 	}
+	if err := backfillSlugs(ctx, tx); err != nil {
+		return err
+	}
 	return tx.Commit(ctx)
 }
 
 func scanProduct(row pgx.Row) (Product, error) {
 	var p Product
 	var specs []byte
-	err := row.Scan(&p.ID, &p.Name, &p.Description, &p.Category, &p.Price, &p.Color, &p.HeightCM, &p.WidthCM, &p.LengthCM, &specs, &p.Images, &p.Published, &p.CreatedAt)
+	err := row.Scan(&p.ID, &p.Slug, &p.Name, &p.Description, &p.Category, &p.Price, &p.Color, &p.HeightCM, &p.WidthCM, &p.LengthCM, &specs, &p.Images, &p.Published, &p.CreatedAt)
 	if err != nil {
 		return p, err
 	}
@@ -124,20 +194,27 @@ func listProducts(ctx context.Context, pool *pgxpool.Pool, onlyPublished bool) (
 	return products, rows.Err()
 }
 
-func getProduct(ctx context.Context, pool *pgxpool.Pool, id int64, onlyPublished bool) (Product, error) {
-	query := `SELECT ` + productColumns + ` FROM products WHERE id = $1`
+// getProduct finds a product by slug, or by numeric id for links made before slugs existed.
+func getProduct(ctx context.Context, pool *pgxpool.Pool, key string, onlyPublished bool) (Product, error) {
+	query := `SELECT ` + productColumns + ` FROM products WHERE slug = $1`
+	var arg any = key
+	if id, err := strconv.ParseInt(key, 10, 64); err == nil {
+		query = `SELECT ` + productColumns + ` FROM products WHERE id = $1`
+		arg = id
+	}
 	if onlyPublished {
 		query += ` AND published`
 	}
-	return scanProduct(pool.QueryRow(ctx, query, id))
+	return scanProduct(pool.QueryRow(ctx, query, arg))
 }
 
+// insertProduct returns pgx.ErrNoRows when the slug is already taken.
 func insertProduct(ctx context.Context, pool *pgxpool.Pool, p Product) (Product, error) {
 	specs, _ := json.Marshal(p.Specs)
 	return scanProduct(pool.QueryRow(ctx,
-		`INSERT INTO products (name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING `+productColumns,
-		p.Name, p.Description, p.Category, p.Price, p.Color, p.HeightCM, p.WidthCM, p.LengthCM, specs, p.Images, p.Published))
+		`INSERT INTO products (slug, name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (slug) WHERE slug <> '' DO NOTHING RETURNING `+productColumns,
+		p.Slug, p.Name, p.Description, p.Category, p.Price, p.Color, p.HeightCM, p.WidthCM, p.LengthCM, specs, p.Images, p.Published))
 }
 
 func updateProduct(ctx context.Context, pool *pgxpool.Pool, id int64, p Product) (Product, error) {
@@ -197,9 +274,9 @@ func seedDemo(ctx context.Context, pool *pgxpool.Pool) error {
 	for _, p := range demo {
 		specs, _ := json.Marshal(p.Specs)
 		if _, err := tx.Exec(ctx,
-			`INSERT INTO products (name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published)
-			 SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 WHERE EXISTS (SELECT 1 FROM categories WHERE slug = $3)`,
-			p.Name, p.Description, p.Category, p.Price, p.Color, p.HeightCM, p.WidthCM, p.LengthCM, specs, p.Images, p.Published); err != nil {
+			`INSERT INTO products (slug, name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published)
+			 SELECT $12,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 WHERE EXISTS (SELECT 1 FROM categories WHERE slug = $3) ON CONFLICT (slug) WHERE slug <> '' DO NOTHING`,
+			p.Name, p.Description, p.Category, p.Price, p.Color, p.HeightCM, p.WidthCM, p.LengthCM, specs, p.Images, p.Published, productSlug(p.Name)); err != nil {
 			return err
 		}
 	}

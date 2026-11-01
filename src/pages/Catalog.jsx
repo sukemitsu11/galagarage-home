@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import CategorySquares from '../components/CategorySquares.jsx';
 import ProductTile, { TileSkeletons } from '../components/ProductTile.jsx';
+import { SITE_NAME, usePageMeta } from '../seo.js';
 import { useSite } from '../site.jsx';
 import { useProducts } from '../store.jsx';
 
@@ -9,9 +10,22 @@ const normalize = text => text.toLocaleLowerCase('ru').replaceAll('ё', 'е');
 
 export default function Catalog() {
   const { status, products, reload } = useProducts();
-  const { categories, categoryName } = useSite();
+  const { categories, categoryName, status: siteStatus } = useSite();
+  const { category: categoryParam } = useParams(); // /catalog/<раздел>
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const category = categories.some(item => item.id === params.get('category')) ? params.get('category') : 'all';
+  const category = categoryParam ?? 'all';
+  const known = categories.some(item => item.id === category);
+  const title = category === 'all' ? 'Каталог' : categoryName(category) || 'Каталог';
+  usePageMeta({
+    title: `${title} | ${SITE_NAME}`,
+    description: category === 'all'
+      ? `Каталог бутика ${SITE_NAME} в Омске: мебель, посуда, текстиль и декор. Цены и наличие уточняйте в WhatsApp или Telegram.`
+      : `${title}: каталог бутика ${SITE_NAME} в Омске. Цены и наличие уточняйте в WhatsApp или Telegram.`,
+    path: category === 'all' ? '/catalog' : `/catalog/${category}`,
+    image: category === 'all' ? '/assets/category-all.jpg' : categories.find(item => item.id === category)?.image,
+    noindex: category !== 'all' && siteStatus === 'ready' && !known
+  });
   const sort = ['price-asc', 'price-desc'].includes(params.get('sort')) ? params.get('sort') : 'new';
   const query = (params.get('q') ?? '').trim();
   const color = params.get('color') ?? '';
@@ -39,16 +53,36 @@ export default function Catalog() {
 
   function update(key, value) {
     const next = new URLSearchParams(params);
-    if (!value || value === 'all' || value === 'new') next.delete(key); else next.set(key, value);
+    if (!value || value === 'new') next.delete(key); else next.set(key, value);
     setParams(next, { replace: true });
   }
 
+  // The section is part of the address, the filters stay in the query string.
+  function selectCategory(id) {
+    const search = params.toString();
+    navigate({ pathname: id === 'all' ? '/catalog' : `/catalog/${id}`, search: search ? `?${search}` : '' }, { replace: true });
+  }
+
+  // Links made before sections got their own address: /catalog?category=decor.
+  const legacy = params.get('category');
+  if (legacy) {
+    const rest = new URLSearchParams(params);
+    rest.delete('category');
+    const search = rest.toString();
+    return <Navigate replace to={{ pathname: legacy === 'all' ? '/catalog' : `/catalog/${legacy}`, search: search ? `?${search}` : '' }} />;
+  }
+  if (categoryParam && siteStatus === 'ready' && !known) return <Navigate replace to="/catalog" />;
+
   return (
     <main id="main" className="page">
-      <nav className="crumbs" aria-label="Путь"><Link to="/">Главная</Link><Link to="/catalog">Каталог</Link></nav>
-      <h1 className="page-title">{category === 'all' ? 'Каталог' : categoryName(category)}</h1>
+      <nav className="crumbs" aria-label="Путь">
+        <Link to="/">Главная</Link>
+        <Link to="/catalog">Каталог</Link>
+        {category !== 'all' && <Link to={`/catalog/${category}`}>{title}</Link>}
+      </nav>
+      <h1 className="page-title">{title}</h1>
 
-      <CategorySquares active={category} onSelect={id => update('category', id)} counts={countIn} />
+      <CategorySquares active={category} onSelect={selectCategory} counts={countIn} />
 
       <div className="toolbar" role="group" aria-label="Фильтры">
         <div className="price-range">
@@ -73,7 +107,7 @@ export default function Catalog() {
 
       <div className="count" role="status">
         {status === 'ready' && <span>Найдено: {visible.length}{query ? `, по запросу «${query}»` : ''}</span>}
-        {filtered && <button className="link-button" type="button" onClick={() => setParams({}, { replace: true })}>Сбросить</button>}
+        {filtered && <button className="link-button" type="button" onClick={() => navigate('/catalog', { replace: true })}>Сбросить</button>}
       </div>
 
       {status === 'error' ? (

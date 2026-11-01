@@ -81,13 +81,17 @@ func main() {
 	}
 
 	auth := newAuth(cfg)
-	h := &Handlers{pool: pool, uploadDir: cfg.UploadDir}
+	h := &Handlers{pool: pool, uploadDir: cfg.UploadDir, publicURL: cfg.PublicURL}
+
+	router.GET("/robots.txt", h.robots)
+	router.GET("/sitemap.xml", h.sitemap)
 
 	api := router.Group("/api", noStore)
 	api.GET("/products", h.publicList)
 	api.GET("/products/:id", h.publicGet)
 	api.GET("/categories", h.categories)
 	api.GET("/settings", h.settings)
+	api.GET("/seo/*path", h.seoHead)
 	api.POST("/admin/login", auth.login)
 	api.POST("/admin/logout", auth.logout)
 	admin := api.Group("/admin", auth.require)

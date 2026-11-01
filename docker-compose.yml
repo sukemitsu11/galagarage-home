@@ -30,6 +30,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-}
       SECURE_COOKIES: ${SECURE_COOKIES:-false}
       SEED_DEMO: ${SEED_DEMO:-true}
+      PUBLIC_URL: ${PUBLIC_URL:-}
       # Реальный адрес клиента принимается только от nginx (frontend) с фиксированным адресом.
       TRUSTED_PROXIES: 172.28.0.10
     security_opt: ["no-new-privileges:true"]

@@ -26,6 +26,7 @@ const (
 type Handlers struct {
 	pool      *pgxpool.Pool
 	uploadDir string
+	publicURL string
 }
 
 func fail(c *gin.Context, status int, message string) {
@@ -51,11 +52,7 @@ func (h *Handlers) publicList(c *gin.Context) {
 }
 
 func (h *Handlers) publicGet(c *gin.Context) {
-	id, ok := parseID(c)
-	if !ok {
-		return
-	}
-	product, err := getProduct(c, h.pool, id, true)
+	product, err := getProduct(c, h.pool, c.Param("id"), true)
 	if isNotFound(err) {
 		fail(c, http.StatusNotFound, "Товар не найден")
 		return
@@ -150,16 +147,35 @@ func (h *Handlers) create(c *gin.Context) {
 	if !ok {
 		return
 	}
-	created, err := insertProduct(c, h.pool, p)
-	if isForeignKeyError(err) {
-		fail(c, http.StatusUnprocessableEntity, "Выберите раздел из списка")
+	// The address comes from the name once and then stays, so shared links keep working after a rename.
+	base := productSlug(p.Name)
+	for attempt := 0; attempt < 20; attempt++ {
+		p.Slug = base
+		switch {
+		case attempt >= 10:
+			// Numbered names such as "Тарелка 2" can use up the short suffixes.
+			buf := make([]byte, 3)
+			rand.Read(buf)
+			p.Slug = base + "-" + hex.EncodeToString(buf)
+		case attempt > 0:
+			p.Slug = base + "-" + strconv.Itoa(attempt+1)
+		}
+		created, err := insertProduct(c, h.pool, p)
+		if isNotFound(err) {
+			continue
+		}
+		if isForeignKeyError(err) {
+			fail(c, http.StatusUnprocessableEntity, "Выберите раздел из списка")
+			return
+		}
+		if err != nil {
+			fail(c, http.StatusInternalServerError, "Не удалось сохранить товар")
+			return
+		}
+		c.JSON(http.StatusCreated, created)
 		return
 	}
-	if err != nil {
-		fail(c, http.StatusInternalServerError, "Не удалось сохранить товар")
-		return
-	}
-	c.JSON(http.StatusCreated, created)
+	fail(c, http.StatusConflict, "Не удалось подобрать адрес страницы для товара с таким названием")
 }
 
 func (h *Handlers) update(c *gin.Context) {

@@ -3,6 +3,7 @@ import Banner from '../components/Banner.jsx';
 import Boutique from '../components/Boutique.jsx';
 import CategorySquares from '../components/CategorySquares.jsx';
 import ProductTile, { TileSkeletons } from '../components/ProductTile.jsx';
+import { SITE_NAME, sentences, usePageMeta } from '../seo.js';
 import { useSite } from '../site.jsx';
 import { useProducts } from '../store.jsx';
 
@@ -10,6 +11,12 @@ export default function Home() {
   const { status, products, reload } = useProducts();
   const { contacts, settings } = useSite();
   const latest = products.slice(0, 10);
+  usePageMeta({
+    title: `${SITE_NAME} — бутик домашнего декора в Омске`,
+    description: sentences(settings.bannerText, settings.address, settings.phone),
+    path: '/',
+    image: settings.bannerImages[0]
+  });
 
   return (
     <main id="main">

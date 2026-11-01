@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import ProductTile from '../components/ProductTile.jsx';
+import { SITE_NAME, usePageMeta } from '../seo.js';
 import { useCart, useFavorites, useProducts } from '../store.jsx';
 
 export default function Favorites() {
+  usePageMeta({ title: `Избранное | ${SITE_NAME}`, description: 'Предметы, которые вы отложили в избранное.', noindex: true });
   const { status, reload } = useProducts();
   const favorites = useFavorites();
   const cart = useCart();

@@ -61,7 +61,7 @@ export default function Header() {
         <h2 id="menu-title" className="visually-hidden">Меню</h2>
         <nav aria-label="Основная навигация">
           <Link to="/catalog">Весь каталог</Link>
-          {categories.map(category => <Link key={category.id} to={`/catalog?category=${category.id}`}>{category.name}</Link>)}
+          {categories.map(category => <Link key={category.id} to={`/catalog/${category.id}`}>{category.name}</Link>)}
           <Link to="/favorites">Избранное</Link>
           <Link to="/#boutique">О бутике</Link>
           <Link to="/#contacts">Контакты</Link>

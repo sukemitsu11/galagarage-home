@@ -25,7 +25,7 @@ export default function ProductView({ product }) {
       <nav className="crumbs" aria-label="Путь">
         <Link to="/">Главная</Link>
         <Link to="/catalog">Каталог</Link>
-        <Link to={`/catalog?category=${product.category}`}>{categoryName(product.category) || 'Раздел'}</Link>
+        <Link to={`/catalog/${product.category}`}>{categoryName(product.category) || 'Раздел'}</Link>
       </nav>
       <div className="product-layout">
         <div className="gallery">

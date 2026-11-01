@@ -4,8 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Galagarage home — бутик домашнего декора в Омске. Вазы, посуда, текстиль, мебель и свет. Карла Либкнехта, 26. Телефон +7 913 608-07-35.">
-  <title>Galagarage home — предметы с характером</title>
+  <!-- Название, описание и теги для поисковиков подставляет nginx (SSI) из backend. Запасной вариант в блоке: он должен идти до include. -->
+  <!--# block name="seo_fallback" -->
+  <title>Galagarage home — бутик домашнего декора в Омске</title>
+  <meta name="description" content="Мебель, посуда и декор с характером. Бутик в Омске, улица Карла Либкнехта, 26. Телефон +7 (913) 608-07-35.">
+  <meta property="og:site_name" content="Galagarage home">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Galagarage home — бутик домашнего декора в Омске">
+  <!--# endblock -->
+  <!--# include virtual="/_seo$seo_path" stub="seo_fallback" -->
   <link rel="preload" href="/assets/Onest-Variable.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="/assets/chair-leather.jpg" as="image" fetchpriority="high">
 </head>

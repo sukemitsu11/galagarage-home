@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import ProductTile from '../components/ProductTile.jsx';
 import ProductView from '../components/ProductView.jsx';
+import { SITE_NAME, shorten, usePageMeta } from '../seo.js';
 import { useProducts } from '../store.jsx';
 
 export default function Product() {
-  const { id } = useParams();
+  const { id } = useParams(); // the product slug, or an old numeric id from links made earlier
   const catalog = useProducts();
   const [state, setState] = useState({ status: 'loading', product: null });
 
@@ -19,10 +20,22 @@ export default function Product() {
     return () => { active = false; };
   }, [id]);
 
-  useEffect(() => {
-    if (state.product) document.title = `${state.product.name} | Galagarage home`;
-    return () => { document.title = 'Galagarage home: предметы с характером'; };
-  }, [state.product]);
+  const loaded = state.product;
+  usePageMeta(loaded ? {
+    title: `${loaded.name} | ${SITE_NAME}`,
+    description: shorten(loaded.description) || `${loaded.name}. Бутик ${SITE_NAME}, Омск.`,
+    path: `/product/${loaded.slug || loaded.id}`,
+    image: loaded.images[0],
+    kind: 'product'
+  } : state.status === 'missing' ? {
+    title: `Страница не найдена | ${SITE_NAME}`,
+    description: 'Такой страницы нет. Вернитесь в каталог.',
+    noindex: true
+  } : {});
+
+  if (state.status === 'ready' && state.product.slug && state.product.slug !== id) {
+    return <Navigate to={`/product/${state.product.slug}`} replace />;
+  }
 
   if (state.status === 'loading') return <main id="main" className="page"><p className="state-message">Загружаем предмет.</p></main>;
   if (state.status !== 'ready') {

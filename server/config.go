@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -18,7 +19,10 @@ type Config struct {
 	DistDir        string
 	SeedDemo       bool
 	TrustedProxies []string
+	PublicURL      string
 }
+
+var publicURLValue = regexp.MustCompile(`^https?://[A-Za-z0-9.-]{1,253}(:[0-9]{1,5})?$`)
 
 func env(key, fallback string) string {
 	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
@@ -36,6 +40,14 @@ func loadConfig() Config {
 		UploadDir:     env("UPLOAD_DIR", "./uploads"),
 		DistDir:       env("DIST_DIR", "../dist"),
 		SeedDemo:      env("SEED_DEMO", "true") == "true",
+	}
+	if url := strings.TrimRight(env("PUBLIC_URL", ""), "/"); url != "" {
+		if !publicURLValue.MatchString(url) {
+			log.Fatal("PUBLIC_URL must look like https://example.ru (scheme and host, no path)")
+		}
+		cfg.PublicURL = url
+	} else if cfg.SecureCookies {
+		log.Print("PUBLIC_URL is not set: canonical links and the sitemap use the address from the request. Set it to your domain in production")
 	}
 	if proxies := env("TRUSTED_PROXIES", ""); proxies != "" {
 		cfg.TrustedProxies = strings.Split(proxies, ",")
