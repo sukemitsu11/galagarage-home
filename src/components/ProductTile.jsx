@@ -12,7 +12,7 @@ export default function ProductTile({ product }) {
   return (
     <article className="tile">
       <div className="tile-media">
-        <Link className="tile-photo" to={`/product/${product.slug || product.id}`} tabIndex={-1} aria-hidden="true">
+        <Link className="tile-photo" to={`/product/${product.slug || product.id}`} tabIndex={-1} aria-label={product.name}>
           {photo ? <img src={photo} alt="" width="600" height="600" loading="lazy" /> : <span className="tile-empty">Нет фото</span>}
         </Link>
         <FavoriteButton product={product} className="tile-favorite" />
