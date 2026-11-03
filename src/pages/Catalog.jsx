@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { SlidersHorizontal } from '@phosphor-icons/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import Modal from '../Modal.jsx';
 import CategorySquares from '../components/CategorySquares.jsx';
 import ProductTile, { TileSkeletons } from '../components/ProductTile.jsx';
 import { SITE_NAME, usePageMeta } from '../seo.js';
+import { matchesQuery, normalize, productText, suggestQuery } from '../search.js';
 import { useSite } from '../site.jsx';
 import { useProducts } from '../store.jsx';
 
 const PAGE_SIZE = 40;
-
-const normalize = text => text.toLocaleLowerCase('ru').replaceAll('ё', 'е');
 
 export default function Catalog() {
   const { status, products, reload } = useProducts();
@@ -37,19 +38,31 @@ export default function Catalog() {
 
   const colors = useMemo(() => [...new Set(products.map(product => normalize(product.color.trim())).filter(Boolean))].sort(), [products]);
 
-  const visible = useMemo(() => {
-    const needle = normalize(query);
-    const list = products.filter(product => {
-      if (category !== 'all' && product.category !== category) return false;
-      if (color && normalize(product.color.trim()) !== color) return false;
-      if (min && product.price < min) return false;
-      if (max && product.price > max) return false;
-      return !needle || normalize(`${product.name} ${product.description} ${product.color} ${categoryName(product.category)}`).includes(needle);
-    });
-    if (sort === 'price-asc') list.sort((a, b) => a.price - b.price);
-    if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
-    return list;
-  }, [products, category, color, min, max, query, sort]);
+  // Everything except the search words: section, colour and price.
+  const inFilters = useMemo(() => products.filter(product => {
+    if (category !== 'all' && product.category !== category) return false;
+    if (color && normalize(product.color.trim()) !== color) return false;
+    if (min && product.price < min) return false;
+    return !(max && product.price > max);
+  }), [products, category, color, min, max]);
+
+  const sorted = list => {
+    const copy = [...list];
+    if (sort === 'price-asc') copy.sort((a, b) => a.price - b.price);
+    if (sort === 'price-desc') copy.sort((a, b) => b.price - a.price);
+    return copy;
+  };
+  const visible = useMemo(() => sorted(inFilters.filter(product => matchesQuery(productText(product, categoryName), query))), [inFilters, query, sort]);
+
+  // Nothing found for the typed words: offer the closest real words ("вааза" gives "ваза") and show what they find.
+  const suggestion = useMemo(
+    () => (query && visible.length === 0 && products.length ? suggestQuery(query, products, categoryName) : ''),
+    [query, visible.length, products]
+  );
+  const suggested = useMemo(
+    () => (suggestion ? sorted(inFilters.filter(product => matchesQuery(productText(product, categoryName), suggestion))) : []),
+    [suggestion, inFilters, sort]
+  );
 
   const counts = useMemo(() => {
     const result = { all: products.length };
@@ -67,12 +80,20 @@ export default function Catalog() {
     if (firstRender.current) { firstRender.current = false; return; }
     countRef.current?.scrollIntoView({ block: 'start' });
   }, [page]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilters = (color ? 1 : 0) + (min || max ? 1 : 0) + (sort !== 'new' ? 1 : 0);
   const filtered = Boolean(category !== 'all' || color || min || max || query);
 
   function update(key, value) {
     const next = new URLSearchParams(params);
     if (!value || value === 'new') next.delete(key); else next.set(key, value);
     next.delete('page');
+    setParams(next, { replace: true });
+  }
+
+  function resetFilters() {
+    const next = new URLSearchParams(params);
+    for (const key of ['color', 'min', 'max', 'sort', 'page']) next.delete(key);
     setParams(next, { replace: true });
   }
 
@@ -105,40 +126,65 @@ export default function Catalog() {
 
       <CategorySquares active={category} onSelect={selectCategory} counts={countIn} />
 
-      <div className="toolbar" role="group" aria-label="Фильтры">
-        <div className="price-range">
-          <label><span className="visually-hidden">Цена от, ₽</span><input name="min" inputMode="numeric" autoComplete="off" placeholder="Цена от" value={params.get('min') ?? ''} onChange={event => update('min', event.target.value.replace(/\D/g, ''))} /></label>
-          <label><span className="visually-hidden">Цена до, ₽</span><input name="max" inputMode="numeric" autoComplete="off" placeholder="до" value={params.get('max') ?? ''} onChange={event => update('max', event.target.value.replace(/\D/g, ''))} /></label>
-        </div>
-        {colors.length > 0 && (
-          <div className="color-chips" role="group" aria-label="Цвет">
-            {colors.map(item => (
-              <button key={item} type="button" className={`chip${color === item ? ' is-active' : ''}`} aria-pressed={color === item} onClick={() => update('color', color === item ? '' : item)}>{item}</button>
-            ))}
-          </div>
-        )}
-        <label className="sort"><span className="visually-hidden">Сортировка</span>
-          <select value={sort} onChange={event => update('sort', event.target.value)}>
-            <option value="new">Сначала новые</option>
-            <option value="price-asc">Сначала дешевле</option>
-            <option value="price-desc">Сначала дороже</option>
-          </select>
-        </label>
-      </div>
-
       <div className="count" role="status" ref={countRef}>
         {status === 'ready' && <span>Найдено: {visible.length}{pages > 1 ? `, показаны ${(page - 1) * PAGE_SIZE + 1}-${(page - 1) * PAGE_SIZE + shown.length}` : ''}{query ? `, по запросу «${query}»` : ''}</span>}
         {filtered && <button className="link-button" type="button" onClick={() => navigate('/catalog', { replace: true })}>Сбросить</button>}
+        <button className="filter-button" type="button" aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}>
+          <SlidersHorizontal size={20} weight="light" aria-hidden="true" />
+          <span>Фильтры</span>
+          {activeFilters > 0 && <span className="filter-count" aria-label={`, выбрано: ${activeFilters}`}>{activeFilters}</span>}
+        </button>
       </div>
 
       {status === 'error' ? (
         <p className="state-message">Каталог не загрузился. <button className="link-button" type="button" onClick={reload}>Повторить</button></p>
       ) : status === 'ready' && visible.length === 0 ? (
-        <p className="state-message">{filtered ? 'По этим условиям ничего не нашлось. Уберите фильтр или измените запрос.' : 'Здесь пока нет предметов.'}</p>
+        <>
+          <p className="state-message">{query ? 'Ничего не нашлось. Проверьте написание или уберите фильтры.' : filtered ? 'По этим условиям ничего не нашлось. Уберите фильтр.' : 'Здесь пока нет предметов.'}</p>
+          {suggestion && suggested.length > 0 && (
+            <section className="suggest" aria-labelledby="suggest-title">
+              <h2 id="suggest-title" className="suggest-title">Возможно, вы искали: <button type="button" className="link-button" onClick={() => update('q', suggestion)}>{suggestion}</button></h2>
+              <div className="grid">{suggested.slice(0, 8).map(product => <ProductTile key={product.id} product={product} />)}</div>
+            </section>
+          )}
+        </>
       ) : (
         <div className="grid">{status === 'loading' ? <TileSkeletons count={8} /> : shown.map(product => <ProductTile key={product.id} product={product} />)}</div>
       )}
       {status === 'ready' && pages > 1 && <Pager page={page} pages={pages} params={params} />}
+
+      <Modal open={filtersOpen} onClose={() => setFiltersOpen(false)} className="cart-drawer filter-drawer" labelledBy="filters-title">
+        <h2 id="filters-title">Фильтры</h2>
+        <fieldset className="filter-group">
+          <legend>Цена, ₽</legend>
+          <div className="price-range">
+            <label><span className="visually-hidden">Цена от, ₽</span><input name="min" inputMode="numeric" autoComplete="off" placeholder="От" value={params.get('min') ?? ''} onChange={event => update('min', event.target.value.replace(/\D/g, ''))} /></label>
+            <label><span className="visually-hidden">Цена до, ₽</span><input name="max" inputMode="numeric" autoComplete="off" placeholder="До" value={params.get('max') ?? ''} onChange={event => update('max', event.target.value.replace(/\D/g, ''))} /></label>
+          </div>
+        </fieldset>
+        {colors.length > 0 && (
+          <fieldset className="filter-group">
+            <legend>Цвет</legend>
+            <div className="color-chips">
+              {colors.map(item => (
+                <button key={item} type="button" className={`chip${color === item ? ' is-active' : ''}`} aria-pressed={color === item} onClick={() => update('color', color === item ? '' : item)}>{item}</button>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        <fieldset className="filter-group">
+          <legend>Порядок</legend>
+          <div className="color-chips">
+            {[['new', 'Сначала новые'], ['price-asc', 'Сначала дешевле'], ['price-desc', 'Сначала дороже']].map(([value, label]) => (
+              <button key={value} type="button" className={`chip${sort === value ? ' is-active' : ''}`} aria-pressed={sort === value} onClick={() => update('sort', value)}>{label}</button>
+            ))}
+          </div>
+        </fieldset>
+        <div className="filter-actions">
+          <button className="button button-primary" type="button" onClick={() => setFiltersOpen(false)}>Показать: {visible.length}</button>
+          {activeFilters > 0 && <button className="link-button" type="button" onClick={resetFilters}>Сбросить фильтры</button>}
+        </div>
+      </Modal>
     </main>
   );
 }

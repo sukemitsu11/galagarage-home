@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { dimensionRows, formatPrice, isAvailable } from '../lib.js';
 import { useSite } from '../site.jsx';
@@ -6,33 +6,7 @@ import { buildMessage, orderLinks, useCart } from '../store.jsx';
 import FavoriteButton from './FavoriteButton.jsx';
 import Lightbox from './Lightbox.jsx';
 import Photo from './Photo.jsx';
-
-// "Поделиться": the phone's share sheet, or a copied link where there is none.
-function ShareButton({ product }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return undefined;
-    const timer = setTimeout(() => setCopied(false), 2500);
-    return () => clearTimeout(timer);
-  }, [copied]);
-
-  if (!navigator.share && !navigator.clipboard) return null;
-
-  async function share() {
-    const url = `${window.location.origin}/product/${product.slug || product.id}`;
-    try {
-      if (navigator.share) await navigator.share({ title: product.name, text: `${product.name}, ${formatPrice(product.price)}`, url });
-      else { await navigator.clipboard.writeText(url); setCopied(true); }
-    } catch { /* The visitor closed the share sheet. */ }
-  }
-
-  return (
-    <div className="share">
-      <button className="text-button" type="button" onClick={share}>Поделиться</button>
-      <span role="status">{copied ? 'Ссылка скопирована' : ''}</span>
-    </div>
-  );
-}
+import ShareMenu from './ShareMenu.jsx';
 
 // The product page body.
 export default function ProductView({ product }) {
@@ -108,7 +82,7 @@ export default function ProductView({ product }) {
               </div>
             </div>
           )}
-          <ShareButton product={product} />
+          <ShareMenu product={product} />
           {product.description && <p className="product-description">{product.description}</p>}
           {rows.length > 0 && (
             <>
