@@ -283,6 +283,37 @@ li { list-style: none; }
   .specs > div { grid-template-columns: 120px 1fr; }
 }
 
+/* Second photo on hover (only where there is a real hover), sold and reserved items */
+.tile-photo { position: relative; }
+.tile-alt { position: absolute; inset: 0; opacity: 0; transition: opacity .35s ease; }
+@media (hover: hover) {
+  .tile:hover .tile-alt { opacity: 1; }
+}
+.tile.is-unavailable .tile-photo img { opacity: .55; }
+.tile-state { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.sold-note { color: var(--muted); max-width: 46ch; }
+
+/* Product page: full-size photo, share */
+.gallery-zoom { display: block; width: 100%; height: 100%; cursor: zoom-in; }
+.share { display: flex; align-items: center; gap: 14px; margin-top: 14px; min-height: 24px; }
+.share [role="status"] { font-size: 13px; color: var(--muted); }
+.lightbox { width: min(1100px, 96vw); max-width: none; max-height: 96dvh; margin: auto; padding: 56px 16px 16px; border: 0; background: var(--paper); color: var(--ink); overflow: hidden; }
+.lightbox::backdrop { background: rgb(20 20 18 / .82); }
+.lightbox img { display: block; max-width: 100%; max-height: calc(96dvh - 140px); margin: 0 auto; object-fit: contain; }
+.lightbox-nav { display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 14px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Home page: ways to get to the boutique */
+.boutique-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.boutique-copied { font-size: 13px; color: var(--muted); }
+
+/* Cart: items that can no longer be ordered */
+.cart-unavailable { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); }
+.cart-unavailable h3 { margin-bottom: 8px; font-size: 13px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+
+/* Headlines break evenly, paragraphs do not leave a single word on the last line */
+h1, h2, h3, .banner-text p { text-wrap: balance; }
+p { text-wrap: pretty; }
+
 /* 404: the zero of "404" is a square photo of the newest item. Sizes are in em so the digits and the photo scale together. */
 .lost { padding-top: clamp(24px, 5vw, 64px); }
 .lost-top { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end; gap: 28px clamp(32px, 6vw, 96px); }

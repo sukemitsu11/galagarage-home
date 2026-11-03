@@ -32,10 +32,11 @@ type Product struct {
 	Specs       []Spec    `json:"specs"`
 	Images      []string  `json:"images"`
 	Published   bool      `json:"published"`
+	Status      string    `json:"status"` // available, reserved or sold
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
-const productColumns = `id, slug, name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published, created_at`
+const productColumns = `id, slug, name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published, status, created_at`
 
 const schema = `
 CREATE TABLE IF NOT EXISTS products (
@@ -52,9 +53,16 @@ CREATE TABLE IF NOT EXISTS products (
 	specs       JSONB NOT NULL DEFAULT '[]',
 	images      TEXT[] NOT NULL DEFAULT '{}',
 	published   BOOLEAN NOT NULL DEFAULT TRUE,
+	status      TEXT NOT NULL DEFAULT 'available',
 	created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE products ADD COLUMN IF NOT EXISTS slug TEXT NOT NULL DEFAULT '';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'available';
+DO $$ BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'products_status_check' AND conrelid = 'products'::regclass) THEN
+		ALTER TABLE products ADD CONSTRAINT products_status_check CHECK (status IN ('available', 'reserved', 'sold'));
+	END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS meta (
 	key   TEXT PRIMARY KEY,
 	value TEXT NOT NULL
@@ -159,7 +167,7 @@ func migrate(ctx context.Context, pool *pgxpool.Pool) error {
 func scanProduct(row pgx.Row) (Product, error) {
 	var p Product
 	var specs []byte
-	err := row.Scan(&p.ID, &p.Slug, &p.Name, &p.Description, &p.Category, &p.Price, &p.Color, &p.HeightCM, &p.WidthCM, &p.LengthCM, &specs, &p.Images, &p.Published, &p.CreatedAt)
+	err := row.Scan(&p.ID, &p.Slug, &p.Name, &p.Description, &p.Category, &p.Price, &p.Color, &p.HeightCM, &p.WidthCM, &p.LengthCM, &specs, &p.Images, &p.Published, &p.Status, &p.CreatedAt)
 	if err != nil {
 		return p, err
 	}
@@ -177,7 +185,12 @@ func listProducts(ctx context.Context, pool *pgxpool.Pool, onlyPublished bool) (
 	if onlyPublished {
 		query += ` WHERE published`
 	}
-	query += ` ORDER BY created_at DESC, id DESC`
+	if onlyPublished {
+		// Sold items go last so the catalog starts with what can be bought.
+		query += ` ORDER BY (status = 'sold'), created_at DESC, id DESC`
+	} else {
+		query += ` ORDER BY created_at DESC, id DESC`
+	}
 	rows, err := pool.Query(ctx, query)
 	if err != nil {
 		return nil, err
@@ -212,17 +225,17 @@ func getProduct(ctx context.Context, pool *pgxpool.Pool, key string, onlyPublish
 func insertProduct(ctx context.Context, pool *pgxpool.Pool, p Product) (Product, error) {
 	specs, _ := json.Marshal(p.Specs)
 	return scanProduct(pool.QueryRow(ctx,
-		`INSERT INTO products (slug, name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (slug) WHERE slug <> '' DO NOTHING RETURNING `+productColumns,
-		p.Slug, p.Name, p.Description, p.Category, p.Price, p.Color, p.HeightCM, p.WidthCM, p.LengthCM, specs, p.Images, p.Published))
+		`INSERT INTO products (slug, name, description, category, price, color, height_cm, width_cm, length_cm, specs, images, published, status)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (slug) WHERE slug <> '' DO NOTHING RETURNING `+productColumns,
+		p.Slug, p.Name, p.Description, p.Category, p.Price, p.Color, p.HeightCM, p.WidthCM, p.LengthCM, specs, p.Images, p.Published, p.Status))
 }
 
 func updateProduct(ctx context.Context, pool *pgxpool.Pool, id int64, p Product) (Product, error) {
 	specs, _ := json.Marshal(p.Specs)
 	return scanProduct(pool.QueryRow(ctx,
-		`UPDATE products SET name=$2, description=$3, category=$4, price=$5, color=$6, height_cm=$7, width_cm=$8, length_cm=$9, specs=$10, images=$11, published=$12
+		`UPDATE products SET name=$2, description=$3, category=$4, price=$5, color=$6, height_cm=$7, width_cm=$8, length_cm=$9, specs=$10, images=$11, published=$12, status=COALESCE(NULLIF($13, ''), status)
 		 WHERE id=$1 RETURNING `+productColumns,
-		id, p.Name, p.Description, p.Category, p.Price, p.Color, p.HeightCM, p.WidthCM, p.LengthCM, specs, p.Images, p.Published))
+		id, p.Name, p.Description, p.Category, p.Price, p.Color, p.HeightCM, p.WidthCM, p.LengthCM, specs, p.Images, p.Published, p.Status))
 }
 
 func deleteProduct(ctx context.Context, pool *pgxpool.Pool, id int64) (bool, error) {

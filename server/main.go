@@ -100,6 +100,7 @@ func main() {
 	admin.GET("/products", h.adminList)
 	admin.POST("/products", h.create)
 	admin.PUT("/products/:id", h.update)
+	admin.PATCH("/products/:id/status", h.setStatus)
 	admin.DELETE("/products/:id", h.remove)
 	admin.POST("/upload", h.upload)
 	admin.POST("/categories", h.createCategory)

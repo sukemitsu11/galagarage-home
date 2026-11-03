@@ -161,7 +161,12 @@ func (h *Handlers) productPage(ctx context.Context, base, key string) (seoPage, 
 		item["color"] = p.Color
 	}
 	if p.Price > 0 {
-		item["offers"] = map[string]any{"@type": "Offer", "url": base + path, "price": strconv.Itoa(p.Price), "priceCurrency": "RUB", "availability": "https://schema.org/InStock"}
+		// A reserved item cannot be bought now, so search engines get the same answer as for a sold one.
+		availability := "https://schema.org/InStock"
+		if p.Status != "available" {
+			availability = "https://schema.org/OutOfStock"
+		}
+		item["offers"] = map[string]any{"@type": "Offer", "url": base + path, "price": strconv.Itoa(p.Price), "priceCurrency": "RUB", "availability": availability}
 	}
 	data := []any{item}
 	crumbs := [][2]string{{"Главная", "/"}, {"Каталог", "/catalog"}}

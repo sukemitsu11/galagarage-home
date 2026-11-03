@@ -3,12 +3,15 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +30,7 @@ type Handlers struct {
 	pool      *pgxpool.Pool
 	uploadDir string
 	publicURL string
+	imageLock sync.Mutex
 }
 
 func fail(c *gin.Context, status int, message string) {
@@ -73,6 +77,37 @@ func (h *Handlers) adminList(c *gin.Context) {
 	c.JSON(http.StatusOK, products)
 }
 
+func validStatus(s string) bool { return s == "available" || s == "reserved" || s == "sold" }
+
+// setStatus changes only the availability of a product, so a quick "sold" click cannot overwrite
+// edits made to the same product from another screen.
+func (h *Handlers) setStatus(c *gin.Context) {
+	id, ok := parseID(c)
+	if !ok {
+		return
+	}
+	var body struct {
+		Status string `json:"status"`
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1<<10)
+	if err := c.ShouldBindJSON(&body); err != nil || !validStatus(body.Status) {
+		fail(c, http.StatusUnprocessableEntity, "Статус: в наличии, забронирован или продан")
+		return
+	}
+	var product Product
+	row := h.pool.QueryRow(c, `UPDATE products SET status = $2 WHERE id = $1 RETURNING `+productColumns, id, body.Status)
+	product, err := scanProduct(row)
+	if isNotFound(err) {
+		fail(c, http.StatusNotFound, "Товар не найден")
+		return
+	}
+	if err != nil {
+		fail(c, http.StatusInternalServerError, "Не удалось сохранить статус")
+		return
+	}
+	c.JSON(http.StatusOK, product)
+}
+
 func validDimension(v *float64) bool { return v == nil || (*v > 0 && *v <= 1000) }
 
 // clean validates and normalises the input. It returns a message for the owner when something is wrong.
@@ -81,6 +116,9 @@ func clean(p *Product) string {
 	p.Description = strings.TrimSpace(p.Description)
 	p.Color = strings.TrimSpace(p.Color)
 	switch {
+	// An empty status means "leave as is" on update; create sets "available" itself.
+	case p.Status != "" && !validStatus(p.Status):
+		return "Статус: в наличии, забронирован или продан"
 	case p.Name == "" || utf8.RuneCountInString(p.Name) > 120:
 		return "Название: от 1 до 120 символов"
 	case utf8.RuneCountInString(p.Description) > 4000:
@@ -146,6 +184,9 @@ func (h *Handlers) create(c *gin.Context) {
 	p, ok := h.bindProduct(c)
 	if !ok {
 		return
+	}
+	if p.Status == "" {
+		p.Status = "available"
 	}
 	// The address comes from the name once and then stays, so shared links keep working after a rename.
 	base := productSlug(p.Name)
@@ -220,7 +261,14 @@ func (h *Handlers) remove(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
-var imageTypes = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+// processLocked runs processImage one photo at a time; a panic in a decoder must not leave the lock taken.
+func (h *Handlers) processLocked(data []byte) ([]byte, []byte, error) {
+	h.imageLock.Lock()
+	defer h.imageLock.Unlock()
+	return processImage(data)
+}
+
+var imageTypes =map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 
 func (h *Handlers) upload(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxUploadBytes+(1<<20))
@@ -239,15 +287,23 @@ func (h *Handlers) upload(c *gin.Context) {
 		return
 	}
 	defer src.Close()
-	sniff := make([]byte, 512)
-	n, _ := src.Read(sniff)
-	ext, ok := imageTypes[http.DetectContentType(sniff[:n])]
-	if !ok {
+	data, err := io.ReadAll(io.LimitReader(src, maxUploadBytes+1))
+	if err != nil || len(data) > maxUploadBytes {
+		fail(c, http.StatusBadRequest, "Не удалось прочитать файл")
+		return
+	}
+	if _, ok := imageTypes[http.DetectContentType(data)]; !ok {
 		fail(c, http.StatusUnsupportedMediaType, "Подходят только JPG, PNG и WebP")
 		return
 	}
-	if _, err := src.Seek(0, 0); err != nil {
-		fail(c, http.StatusInternalServerError, "Не удалось сохранить файл")
+	// One photo at a time: decoding a large photo takes a lot of memory.
+	full, thumb, err := h.processLocked(data)
+	if errors.Is(err, errBadImage) {
+		fail(c, http.StatusUnprocessableEntity, "Не удалось открыть фотографию: файл повреждён или слишком большой по размеру в пикселях")
+		return
+	}
+	if err != nil {
+		fail(c, http.StatusInternalServerError, "Не удалось обработать фотографию")
 		return
 	}
 	random := make([]byte, 12)
@@ -255,14 +311,21 @@ func (h *Handlers) upload(c *gin.Context) {
 		fail(c, http.StatusInternalServerError, "Не удалось сохранить файл")
 		return
 	}
-	name := hex.EncodeToString(random) + ext
 	if err := os.MkdirAll(h.uploadDir, 0o755); err != nil {
 		fail(c, http.StatusInternalServerError, "Не удалось сохранить файл")
 		return
 	}
-	if err := c.SaveUploadedFile(header, filepath.Join(h.uploadDir, name)); err != nil {
+	// Every upload becomes name.jpg plus name-s.jpg, the small copy used in catalog lists.
+	base := hex.EncodeToString(random)
+	fullPath, thumbPath := filepath.Join(h.uploadDir, base+".jpg"), filepath.Join(h.uploadDir, base+"-s.jpg")
+	if err := os.WriteFile(fullPath, full, 0o644); err != nil {
 		fail(c, http.StatusInternalServerError, "Не удалось сохранить файл")
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"url": "/uploads/" + name})
+	if err := os.WriteFile(thumbPath, thumb, 0o644); err != nil {
+		os.Remove(fullPath)
+		fail(c, http.StatusInternalServerError, "Не удалось сохранить файл")
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"url": "/uploads/" + base + ".jpg"})
 }

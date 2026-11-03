@@ -34,6 +34,7 @@ export const api = {
   saveProduct: product => product.id
     ? request(`/api/admin/products/${product.id}`, { method: 'PUT', body: product })
     : request('/api/admin/products', { method: 'POST', body: product }),
+  setProductStatus: (id, status) => request(`/api/admin/products/${id}/status`, { method: 'PATCH', body: { status } }),
   deleteProduct: id => request(`/api/admin/products/${id}`, { method: 'DELETE' }),
   upload: file => {
     const form = new FormData();

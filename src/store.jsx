@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import { useSite } from './site.jsx';
-import { formatPrice } from './lib.js';
+import { formatPrice, isAvailable } from './lib.js';
 
 const ProductsContext = createContext(null);
 const CartContext = createContext(null);
@@ -90,21 +90,29 @@ export function CartProvider({ children }) {
   // Refresh prices before the visitor reviews the order.
   useEffect(() => { if (open) reload(); }, [open, reload]);
 
-  const lines = useMemo(() => items
+  const found = useMemo(() => items
     .map(item => ({ product: products.find(product => product.id === item.id), qty: item.qty }))
     .filter(line => line.product), [items, products]);
+  const lines = useMemo(() => found.filter(line => isAvailable(line.product)), [found]);
+  // Sold and reserved items stay in the cart, but they are listed apart and left out of the order.
+  const unavailable = useMemo(() => found.filter(line => !isAvailable(line.product)), [found]);
 
   // Items whose product is hidden or removed stay stored but are not shown or ordered.
   const value = useMemo(() => {
     const message = buildMessage(lines);
     return {
       lines,
+      unavailable,
       open,
       setOpen,
       count: lines.reduce((sum, line) => sum + line.qty, 0),
       total: lines.reduce((sum, { product, qty }) => sum + product.price * qty, 0),
       has: id => lines.some(line => line.product.id === id),
-      add: id => setItems(current => current.some(item => item.id === id) ? current : [...current, { id, qty: 1 }]),
+      add: id => {
+        const product = products.find(item => item.id === id);
+        if (product && !isAvailable(product)) return;
+        setItems(current => current.some(item => item.id === id) ? current : [...current, { id, qty: 1 }]);
+      },
       setQty: (id, qty) => setItems(current => qty < 1
         ? current.filter(item => item.id !== id)
         : current.map(item => item.id === id ? { ...item, qty: Math.min(qty, 99) } : item)),
@@ -113,7 +121,7 @@ export function CartProvider({ children }) {
       message,
       links: orderLinks(message, contacts)
     };
-  }, [lines, open, setItems, contacts]);
+  }, [lines, unavailable, products, open, setItems, contacts]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

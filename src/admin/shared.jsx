@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
+import Photo from '../components/Photo.jsx';
 
 // Uploads files one by one and reports which ones failed.
 export async function uploadFiles(files) {
@@ -68,7 +69,7 @@ export function PhotoList({ images, onChange, max = 10, onError }) {
         <ul className="photo-grid">
           {images.map((src, index) => (
             <li key={src}>
-              <img src={src} alt={`Фото ${index + 1}`} width="160" height="160" />
+              <Photo small src={src} alt={`Фото ${index + 1}`} width="160" height="160" />
               {index === 0 && <span className="photo-main">Главное</span>}
               <div className="photo-actions">
                 {index > 0 && <button type="button" onClick={() => move(index, -1)}>Левее</button>}
@@ -83,7 +84,7 @@ export function PhotoList({ images, onChange, max = 10, onError }) {
       {images.length < max && (
         <div className="photo-add">
           <FileButton id="product-photos" label={uploading ? 'Загружаем…' : 'Добавить фото'} multiple disabled={uploading} onFiles={add} />
-          <span className="hint">JPG, PNG или WebP до 6 МБ. Можно выбрать сразу несколько.</span>
+          <span className="hint">JPG, PNG или WebP до 6 МБ. Можно выбрать сразу несколько. Сайт сам уменьшит фото и уберёт из него место съёмки.</span>
         </div>
       )}
     </div>

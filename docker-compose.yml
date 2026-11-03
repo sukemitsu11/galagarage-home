@@ -31,10 +31,13 @@ services:
       SECURE_COOKIES: ${SECURE_COOKIES:-false}
       SEED_DEMO: ${SEED_DEMO:-true}
       PUBLIC_URL: ${PUBLIC_URL:-}
+      # Обработка фото временно занимает память: не даём бэкенду съесть весь сервер.
+      GOMEMLIMIT: 400MiB
       # Реальный адрес клиента принимается только от nginx (frontend) с фиксированным адресом.
       TRUSTED_PROXIES: 172.28.0.10
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
+    mem_limit: 600m
     volumes:
       - uploads:/data/uploads
     networks: [internal]

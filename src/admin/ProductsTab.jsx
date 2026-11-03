@@ -3,9 +3,12 @@ import { api } from '../api.js';
 import { formatPrice } from '../lib.js';
 import { useSite } from '../site.jsx';
 import { useProducts } from '../store.jsx';
+import Photo from '../components/Photo.jsx';
 import { Field, PhotoList, useUnsavedWarning } from './shared.jsx';
 
-const blank = { id: 0, name: '', category: '', price: '', color: '', heightCm: '', widthCm: '', lengthCm: '', description: '', specs: [], images: [], published: true };
+const blank = { id: 0, name: '', category: '', price: '', color: '', heightCm: '', widthCm: '', lengthCm: '', description: '', specs: [], images: [], published: true, status: 'available' };
+
+const statusNames = { available: 'В наличии', reserved: 'Забронирован', sold: 'Продан' };
 
 function toForm(product, fallbackCategory) {
   return {
@@ -127,6 +130,11 @@ function ProductForm({ initial, onSaved, onClose }) {
             <p className="field-hint">Первое фото показывается в каталоге и на главной, остальные листаются на странице товара. Лучше всего подходят квадратные фото от 800 px.</p>
             <PhotoList images={form.images} onChange={setImages} onError={setError} />
           </fieldset>
+          <Field id="f-status" label="Наличие" hint="«Продан» и «Забронирован» остаются на сайте с пометкой, но в корзину их добавить нельзя. Когда предмет вернётся в продажу, выберите «В наличии».">
+            <select id="f-status" name="status" value={form.status} onChange={event => set('status', event.target.value)} aria-describedby="f-status-hint">
+              {Object.entries(statusNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </Field>
           <label className="switch">
             <input type="checkbox" checked={form.published} onChange={event => set('published', event.target.checked)} />
             <span>
@@ -177,6 +185,17 @@ export default function ProductsTab({ onNotice, onUnauthorized }) {
     try {
       await api.saveProduct({ ...product, published: !product.published });
       onNotice(product.published ? 'Товар скрыт с сайта' : 'Товар снова на сайте');
+      refresh();
+    } catch (failure) {
+      setError(failure.message);
+    }
+  }
+
+  async function setStatus(product, status) {
+    setError('');
+    try {
+      await api.setProductStatus(product.id, status);
+      onNotice(status === 'sold' ? 'Отмечено как проданное' : 'Предмет снова в наличии');
       refresh();
     } catch (failure) {
       setError(failure.message);
@@ -236,15 +255,18 @@ export default function ProductsTab({ onNotice, onUnauthorized }) {
       <ul className="rows">
         {visible.map(product => (
           <li key={product.id} className={product.published ? '' : 'is-hidden'}>
-            {product.images[0] ? <img src={product.images[0]} alt="" width="56" height="56" /> : <span className="no-photo">Нет фото</span>}
+            {product.images[0] ? <Photo small src={product.images[0]} width="56" height="56" /> : <span className="no-photo">Нет фото</span>}
             <button className="row-main" type="button" onClick={() => setEditing(product)}>
               <strong>{product.name}</strong>
               <span>{categoryName(product.category) || product.category}{product.color ? `, ${product.color}` : ''}</span>
             </button>
             <span className="row-price">{formatPrice(product.price)}</span>
-            <span className={`status ${product.published ? 'is-on' : 'is-off'}`}>{product.published ? 'На сайте' : 'Скрыт'}</span>
+            <span className={`status ${!product.published ? 'is-off' : product.status === 'sold' ? 'is-sold' : product.status === 'reserved' ? 'is-reserved' : 'is-on'}`}>
+              {!product.published ? 'Скрыт' : product.status === 'sold' ? 'Продан' : product.status === 'reserved' ? 'Бронь' : 'На сайте'}
+            </span>
             <div className="row-actions">
               <button className="btn btn-secondary btn-small" type="button" onClick={() => setEditing(product)}>Изменить</button>
+              <button className="btn btn-secondary btn-small" type="button" onClick={() => setStatus(product, product.status === 'available' ? 'sold' : 'available')}>{product.status === 'available' ? 'Продан' : 'В наличии'}</button>
               <button className="btn btn-secondary btn-small" type="button" onClick={() => togglePublished(product)}>{product.published ? 'Скрыть' : 'Показать'}</button>
               {confirmId === product.id ? (
                 <>

@@ -1,34 +1,39 @@
 import { Handbag } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
-import { formatPrice } from '../lib.js';
+import { formatPrice, isAvailable, statusLabels } from '../lib.js';
 import { useCart } from '../store.jsx';
 import FavoriteButton from './FavoriteButton.jsx';
+import Photo from './Photo.jsx';
 
 export default function ProductTile({ product }) {
   const cart = useCart();
-  const photo = product.images[0];
+  const [photo, second] = product.images;
   const inCart = cart.has(product.id);
+  const available = isAvailable(product);
 
   return (
-    <article className="tile">
+    <article className={`tile${available ? '' : ' is-unavailable'}`}>
       <div className="tile-media">
         <Link className="tile-photo" to={`/product/${product.slug || product.id}`} tabIndex={-1} aria-label={product.name}>
-          {photo ? <img src={photo} alt="" width="600" height="600" loading="lazy" /> : <span className="tile-empty">Нет фото</span>}
+          {photo ? <Photo small src={photo} width="600" height="600" loading="lazy" /> : <span className="tile-empty">Нет фото</span>}
+          {second && available && <Photo small className="tile-alt" src={second} width="600" height="600" loading="lazy" />}
         </Link>
         <FavoriteButton product={product} className="tile-favorite" />
       </div>
       <Link className="tile-name" to={`/product/${product.slug || product.id}`}>{product.name}</Link>
       <div className="tile-bottom">
         <span className="tile-price">{formatPrice(product.price)}</span>
-        <button
-          type="button"
-          className={`tile-cart${inCart ? ' is-added' : ''}`}
-          aria-label={inCart ? `Открыть корзину, ${product.name} уже в ней` : `В корзину: ${product.name}`}
-          onClick={() => inCart ? cart.setOpen(true) : cart.add(product.id)}
-        >
-          <Handbag size={18} weight={inCart ? 'fill' : 'light'} aria-hidden="true" />
-          <span>{inCart ? 'В корзине' : 'В корзину'}</span>
-        </button>
+        {available ? (
+          <button
+            type="button"
+            className={`tile-cart${inCart ? ' is-added' : ''}`}
+            aria-label={inCart ? `Открыть корзину, ${product.name} уже в ней` : `В корзину: ${product.name}`}
+            onClick={() => inCart ? cart.setOpen(true) : cart.add(product.id)}
+          >
+            <Handbag size={18} weight={inCart ? 'fill' : 'light'} aria-hidden="true" />
+            <span>{inCart ? 'В корзине' : 'В корзину'}</span>
+          </button>
+        ) : <span className="tile-state">{statusLabels[product.status]}</span>}
       </div>
     </article>
   );

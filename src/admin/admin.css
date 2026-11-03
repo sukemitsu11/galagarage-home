@@ -70,6 +70,8 @@ button.row-main:hover strong { color: var(--a-accent); }
 .status { font-size: 12px; font-weight: 500; padding: 3px 8px; white-space: nowrap; }
 .status.is-on { background: #e6f1e7; color: var(--a-ok); }
 .status.is-off { background: #ecebe8; color: var(--a-muted); }
+.status.is-sold { background: #f4e4e1; color: var(--a-danger); }
+.status.is-reserved { background: #f6edd9; color: #7a5a14; }
 .row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .category-row { grid-template-columns: 56px minmax(0, 1fr) auto !important; }
 .category-row:has(.category-editor) { grid-template-columns: 1fr !important; }

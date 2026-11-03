@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import ProductTile from '../components/ProductTile.jsx';
 import ProductView from '../components/ProductView.jsx';
+import { isAvailable } from '../lib.js';
 import { SITE_NAME, shorten, usePageMeta } from '../seo.js';
 import { useProducts } from '../store.jsx';
 
@@ -48,14 +49,18 @@ export default function Product() {
   }
 
   const { product } = state;
-  const related = catalog.products.filter(item => item.category === product.category && item.id !== product.id).slice(0, 4);
+  // The same section first; when it has fewer than four items, the newest items from the rest of the shop fill the row.
+  const others = catalog.products.filter(item => item.id !== product.id && isAvailable(item));
+  const sameSection = others.filter(item => item.category === product.category);
+  const related = [...sameSection, ...others.filter(item => item.category !== product.category)].slice(0, 4);
+  const relatedTitle = sameSection.length > 0 ? 'Похожие предметы' : 'Новые поступления';
 
   return (
     <main id="main" className="page">
       <ProductView key={product.id} product={product} />
       {related.length > 0 && (
         <section className="related" aria-labelledby="related-title">
-          <h2 id="related-title">Похожие предметы</h2>
+          <h2 id="related-title">{relatedTitle}</h2>
           <div className="grid">{related.map(item => <ProductTile key={item.id} product={item} />)}</div>
         </section>
       )}
