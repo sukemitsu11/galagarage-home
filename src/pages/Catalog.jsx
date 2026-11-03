@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import CategorySquares from '../components/CategorySquares.jsx';
 import ProductTile, { TileSkeletons } from '../components/ProductTile.jsx';
 import { SITE_NAME, usePageMeta } from '../seo.js';
 import { useSite } from '../site.jsx';
 import { useProducts } from '../store.jsx';
+
+const PAGE_SIZE = 40;
 
 const normalize = text => text.toLocaleLowerCase('ru').replaceAll('ё', 'е');
 
@@ -31,6 +33,7 @@ export default function Catalog() {
   const color = params.get('color') ?? '';
   const min = Number(params.get('min')) || 0;
   const max = Number(params.get('max')) || 0;
+  const requestedPage = Math.max(1, Number(params.get('page')) || 1);
 
   const colors = useMemo(() => [...new Set(products.map(product => normalize(product.color.trim())).filter(Boolean))].sort(), [products]);
 
@@ -48,18 +51,36 @@ export default function Catalog() {
     return list;
   }, [products, category, color, min, max, query, sort]);
 
-  const countIn = id => products.filter(product => id === 'all' || product.category === id).length;
+  const counts = useMemo(() => {
+    const result = { all: products.length };
+    for (const product of products) result[product.category] = (result[product.category] ?? 0) + 1;
+    return result;
+  }, [products]);
+  const countIn = id => counts[id] ?? 0;
+  const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const page = Math.min(requestedPage, pages);
+  const shown = useMemo(() => visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [visible, page]);
+  const countRef = useRef(null);
+  const firstRender = useRef(true);
+  // Moving to another page brings the top of the list into view; the first render must not scroll.
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    countRef.current?.scrollIntoView({ block: 'start' });
+  }, [page]);
   const filtered = Boolean(category !== 'all' || color || min || max || query);
 
   function update(key, value) {
     const next = new URLSearchParams(params);
     if (!value || value === 'new') next.delete(key); else next.set(key, value);
+    next.delete('page');
     setParams(next, { replace: true });
   }
 
   // The section is part of the address, the filters stay in the query string.
   function selectCategory(id) {
-    const search = params.toString();
+    const kept = new URLSearchParams(params);
+    kept.delete('page');
+    const search = kept.toString();
     navigate({ pathname: id === 'all' ? '/catalog' : `/catalog/${id}`, search: search ? `?${search}` : '' }, { replace: true });
   }
 
@@ -105,8 +126,8 @@ export default function Catalog() {
         </label>
       </div>
 
-      <div className="count" role="status">
-        {status === 'ready' && <span>Найдено: {visible.length}{query ? `, по запросу «${query}»` : ''}</span>}
+      <div className="count" role="status" ref={countRef}>
+        {status === 'ready' && <span>Найдено: {visible.length}{pages > 1 ? `, показаны ${(page - 1) * PAGE_SIZE + 1}-${(page - 1) * PAGE_SIZE + shown.length}` : ''}{query ? `, по запросу «${query}»` : ''}</span>}
         {filtered && <button className="link-button" type="button" onClick={() => navigate('/catalog', { replace: true })}>Сбросить</button>}
       </div>
 
@@ -115,8 +136,42 @@ export default function Catalog() {
       ) : status === 'ready' && visible.length === 0 ? (
         <p className="state-message">{filtered ? 'По этим условиям ничего не нашлось. Уберите фильтр или измените запрос.' : 'Здесь пока нет предметов.'}</p>
       ) : (
-        <div className="grid">{status === 'loading' ? <TileSkeletons count={8} /> : visible.map(product => <ProductTile key={product.id} product={product} />)}</div>
+        <div className="grid">{status === 'loading' ? <TileSkeletons count={8} /> : shown.map(product => <ProductTile key={product.id} product={product} />)}</div>
       )}
+      {status === 'ready' && pages > 1 && <Pager page={page} pages={pages} params={params} />}
     </main>
+  );
+}
+
+// 1 2 3 ... 9 10: the first, the last and the neighbours of the current page.
+function pageList(page, pages) {
+  const wanted = new Set([1, pages, page - 1, page, page + 1]);
+  const list = [];
+  let last = 0;
+  for (const number of [...wanted].filter(n => n >= 1 && n <= pages).sort((a, b) => a - b)) {
+    if (number - last > 1) list.push('gap');
+    list.push(number);
+    last = number;
+  }
+  return list;
+}
+
+function Pager({ page, pages, params }) {
+  const to = number => {
+    const next = new URLSearchParams(params);
+    if (number === 1) next.delete('page'); else next.set('page', String(number));
+    const search = next.toString();
+    return { search: search ? `?${search}` : '' };
+  };
+  return (
+    <nav className="pager" aria-label="Страницы каталога">
+      {page > 1 ? <Link className="pager-step" to={to(page - 1)}>Назад</Link> : <span className="pager-step is-off">Назад</span>}
+      <ol>
+        {pageList(page, pages).map((item, index) => item === 'gap'
+          ? <li key={`gap${index}`} className="pager-gap" aria-hidden="true">...</li>
+          : <li key={item}><Link to={to(item)} aria-current={item === page ? 'page' : undefined} aria-label={`Страница ${item}`}>{item}</Link></li>)}
+      </ol>
+      {page < pages ? <Link className="pager-step" to={to(page + 1)}>Вперёд</Link> : <span className="pager-step is-off">Вперёд</span>}
+    </nav>
   );
 }

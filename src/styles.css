@@ -274,11 +274,18 @@ li { list-style: none; }
   .gallery-main { grid-column: 1; max-height: none; }
   .gallery-thumbs { grid-row: 2; grid-template-columns: repeat(5, 1fr); }
   .buy-quick { grid-template-columns: 1fr; }
-  .footer-bottom { flex-direction: column; }
+  /* Phone: information and catalog side by side, shop and social links take a full row each */
+  .footer { margin-top: 48px; padding: 28px var(--gutter) 14px; }
+  .footer-main { grid-template-columns: 1fr 1fr; gap: 22px 16px; padding-bottom: 22px; }
+  .footer section { gap: 6px; }
+  .footer section:nth-child(n + 3) { grid-column: 1 / -1; }
+  .footer section:nth-child(4) { flex-direction: row; flex-wrap: wrap; gap: 6px 18px; }
+  .footer section:nth-child(4) h2 { flex: 0 0 100%; margin-bottom: 0; }
+  .footer-bottom { flex-direction: column; padding-top: 12px; }
+  .footer-bottom span:last-child { display: none; }
 }
 
 @media (max-width: 480px) {
-  .footer-main { grid-template-columns: 1fr; }
   .facts > div { grid-template-columns: 1fr; gap: 2px; }
   .specs > div { grid-template-columns: 120px 1fr; }
 }
@@ -343,3 +350,21 @@ p { text-wrap: pretty; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* Catalog pages */
+.pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 44px; font-size: 14px; }
+.pager ol { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.pager ol a, .pager-gap { display: grid; place-items: center; min-width: 40px; min-height: 40px; padding: 0 6px; font-variant-numeric: tabular-nums; }
+.pager ol a { border: 1px solid transparent; transition: border-color .18s ease, background-color .18s ease; }
+.pager ol a:hover { border-color: var(--line, #d8d6d0); }
+.pager ol a[aria-current="page"] { background: var(--ink, #1f1f1d); color: #fff; }
+.pager-gap { color: var(--muted); }
+.pager-step { display: grid; place-items: center; min-height: 40px; padding: 0 4px; text-decoration: underline; text-underline-offset: 3px; }
+.pager-step.is-off { color: var(--muted); text-decoration: none; opacity: .5; }
+@media (max-width: 480px) {
+  .pager { flex-wrap: wrap; gap: 8px 12px; }
+  .pager ol { order: -1; flex-basis: 100%; }
+}
+
+/* Tiles far below the screen are not laid out until they get close */
+.grid > .tile { content-visibility: auto; contain-intrinsic-size: auto 340px; }
